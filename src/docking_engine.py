@@ -96,9 +96,28 @@ class DockingEngine:
             rect=(rect.left, rect.top, rect.right, rect.bottom)
         )
 
+    EXCLUDED_TITLES = {
+        "提示", "确认", "警告", "错误", "删除", "登录", "QQ登录", "退出", "转发",
+        "截图", "表情", "查看图片", "图片查看器", "设置", "系统设置", "文件传输", "关于",
+        "查找", "加为好友", "消息盒子", "未读消息", "系统消息", "好友管理", "群管理",
+        "Alert", "Notice", "Warning", "Confirm", "Login", "Settings"
+    }
+
     def is_supported_target(self, info: TargetWindowInfo) -> bool:
-        if not info or not info.title:
+        if not info or not info.title or not info.title.strip():
             return False
+
+        clean_title = info.title.strip()
+        if clean_title in self.EXCLUDED_TITLES:
+            return False
+
+        # 过滤非聊天主窗体的小型提示框/对话框（正常会话窗体宽 >= 420，高 >= 320）
+        left, top, right, bottom = info.rect
+        width = right - left
+        height = bottom - top
+        if width < 420 or height < 320:
+            return False
+
         for proc, classes in self.SUPPORTED_PROCESSES.items():
             if proc == info.process_name and info.class_name in classes:
                 return True

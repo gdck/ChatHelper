@@ -25,6 +25,24 @@ def test_is_supported_target():
     )
     assert engine.is_supported_target(wechat_info) is True
 
+    qq_chat_info = TargetWindowInfo(
+        hwnd=23456,
+        title="技术交流群",
+        class_name="TXGuiFoundation",
+        process_name="qq.exe",
+        rect=(100, 100, 700, 600)
+    )
+    assert engine.is_supported_target(qq_chat_info) is True
+
+    qq_dialog_info = TargetWindowInfo(
+        hwnd=34567,
+        title="提示",
+        class_name="TXGuiFoundation",
+        process_name="qq.exe",
+        rect=(200, 200, 500, 360) # 300x160 小弹窗
+    )
+    assert engine.is_supported_target(qq_dialog_info) is False
+
     unsupported_info = TargetWindowInfo(
         hwnd=67890,
         title="记事本",
