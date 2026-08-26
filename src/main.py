@@ -96,8 +96,14 @@ def create_app():
 
             ctypes.windll.user32.SetWindowLongW(hwnd, -16, WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN)
             ctypes.windll.user32.SetWindowLongW(hwnd, -20, WS_EX_TOOLWINDOW | WS_EX_TOPMOST)
+            
+            # 初始置于屏幕外隐藏，消除闪烁
+            ctypes.windll.user32.SetWindowPos(hwnd, 0, -10000, -10000, 10, 10, 0x0010 | 0x0004)
             dock.set_helper_hwnd(hwnd)
             dock.start()
+            
+            # 启动时智能逻辑：优先激活已运行的 IM 聊天窗口并吸附贴靠；若无则静默驻留托盘
+            dock.activate_target_or_hide()
 
     def on_closing():
         tray.stop()

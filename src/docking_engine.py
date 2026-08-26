@@ -392,6 +392,53 @@ class DockingEngine:
             self.user32.UnhookWinEvent(self._hook_handle)
             self._hook_handle = 0
 
+    def find_first_running_target_hwnd(self) -> int:
+        """扫描当前系统中是否存在已打开且受支持的有效 IM 聊天窗口"""
+        found = 0
+        def enum_cb(hwnd, lparam):
+            nonlocal found
+            if not self.user32.IsWindowVisible(hwnd):
+                return True
+            info = self._get_window_info(hwnd)
+            if info and self.is_supported_target(info):
+                found = hwnd
+                return False
+            return True
+
+        WNDENUMPROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+        self.user32.EnumWindows(WNDENUMPROC(enum_cb), 0)
+        return found
+
+    def activate_target_or_hide(self) -> None:
+        """
+        启动智能贴靠与静默驻留机制：
+        1. 优先扫描检测系统内是否已存在支持的 IM 窗口（如微信、QQ等）；
+        2. 若存在，激活该 IM 窗口并无缝吸附于其右侧；
+        3. 若不存在，将助手窗口静默隐藏至屏幕外，纯后台托盘驻留，绝不独立弹出孤立窗口。
+        """
+        target_hwnd = self.find_first_running_target_hwnd()
+        if target_hwnd:
+            if self.user32.IsIconic(target_hwnd):
+                self.user32.ShowWindow(target_hwnd, 9) # SW_RESTORE
+            else:
+                self.user32.ShowWindow(target_hwnd, 5) # SW_SHOW
+
+            try:
+                self.user32.AllowSetForegroundWindow(-1)
+                self.user32.SetForegroundWindow(target_hwnd)
+            except Exception:
+                pass
+
+            self.update_dock_position(target_hwnd=target_hwnd, force=True)
+        else:
+            if self.helper_hwnd and self.user32.IsWindow(self.helper_hwnd):
+                self.user32.SetWindowPos(
+                    self.helper_hwnd,
+                    0,
+                    -10000, -10000, 10, 10,
+                    self.SWP_NOACTIVATE | self.SWP_NOZORDER
+                )
+
     def start(self) -> None:
         if not self.running:
             self.running = True
