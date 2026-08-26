@@ -1,4 +1,5 @@
 import os
+import json
 import tempfile
 import pytest
 from src.storage import JsonStorageManager
@@ -70,6 +71,22 @@ def test_settings_and_backup(db):
 
     temp_dir = tempfile.mkdtemp()
     backup_file = os.path.join(temp_dir, "backup.json")
-    assert db.backup_database(backup_file) is True
+    
+    # 导出测试
+    ok, msg = db.export_data(backup_file)
+    assert ok is True
     assert os.path.exists(backup_file)
-    assert db.restore_database(backup_file) is True
+
+    # 还原测试
+    ok_restore, msg_restore, stats = db.import_data(backup_file)
+    assert ok_restore is True
+    assert stats["category_count"] > 0
+    assert stats["reply_count"] > 0
+
+    # 错误文件导入校验测试
+    bad_file = os.path.join(temp_dir, "bad.json")
+    with open(bad_file, "w", encoding="utf-8") as f:
+        f.write("{invalid json...")
+    ok_bad, msg_bad, _ = db.import_data(bad_file)
+    assert ok_bad is False
+    assert "JSON 解析失败" in msg_bad

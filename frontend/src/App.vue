@@ -76,6 +76,7 @@
         @close="showSettingsModal = false"
         @theme-changed="handleThemeChange"
         @toast="triggerToast"
+        @data-restored="handleDataRestored"
       />
 
       <!-- 通用二次确认删除弹窗 -->
@@ -349,6 +350,13 @@ async function handleToggleCollapse() {
 
 function handleThemeChange(dark) {
   isDark.value = dark
+}
+
+async function handleDataRestored() {
+  selectedCategoryId.value = null
+  searchKeyword.value = ''
+  await loadCategories()
+  await loadReplies()
 }
 
 onMounted(async () => {

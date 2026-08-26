@@ -50,15 +50,15 @@
         <hr class="divider" />
 
         <div class="backup-section">
-          <span class="section-title">数据管理与备份</span>
+          <span class="section-title">数据管理与备份 (JSON)</span>
           <div class="backup-buttons">
             <button class="btn backup-btn" @click="handleBackup">
               <Download :size="14" />
-              <span>备份数据</span>
+              <span>备份导出</span>
             </button>
             <button class="btn restore-btn" @click="handleRestore">
               <Upload :size="14" />
-              <span>还原数据</span>
+              <span>还原覆盖</span>
             </button>
           </div>
         </div>
@@ -75,7 +75,7 @@
 import { ref, onMounted } from 'vue'
 import { X, Download, Upload } from 'lucide-vue-next'
 
-const emit = defineEmits(['close', 'theme-changed', 'toast'])
+const emit = defineEmits(['close', 'theme-changed', 'toast', 'data-restored'])
 
 const darkMode = ref(false)
 const typewriterDelay = ref(500)
@@ -111,20 +111,30 @@ async function saveSettings() {
 }
 
 async function handleBackup() {
-  emit('toast', { type: 'info', message: '已自动备份至本地 chat_helper.db' })
+  if (window.pywebview && window.pywebview.api) {
+    const res = await window.pywebview.api.backupData()
+    if (res.success) {
+      emit('toast', { type: 'success', message: res.message || '备份数据已成功导出！' })
+    } else if (!res.cancelled) {
+      emit('toast', { type: 'error', message: res.error || '备份导出失败' })
+    }
+  } else {
+    emit('toast', { type: 'info', message: '已模拟备份导出成功 (Mock)' })
+  }
 }
 
 async function handleRestore() {
   if (window.pywebview && window.pywebview.api) {
-    const files = await window.pywebview.api.selectFiles()
-    if (files && files.length) {
-      const ok = await window.pywebview.api.restoreDatabase(files[0])
-      if (ok) {
-        emit('toast', { type: 'success', message: '数据库还原成功，请刷新数据' })
-      } else {
-        emit('toast', { type: 'error', message: '数据库还原失败，请检查文件格式' })
-      }
+    const res = await window.pywebview.api.restoreData()
+    if (res.success) {
+      emit('toast', { type: 'success', message: res.message || '数据全量还原成功！' })
+      emit('data-restored')
+    } else if (!res.cancelled) {
+      emit('toast', { type: 'error', message: res.error || res.message || '数据还原失败，请检查 JSON 格式' })
     }
+  } else {
+    emit('toast', { type: 'success', message: '数据还原成功 (Mock)' })
+    emit('data-restored')
   }
 }
 </script>

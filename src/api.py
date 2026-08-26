@@ -1,5 +1,6 @@
 import webview
 import threading
+import datetime
 from typing import Any
 from src.storage import JsonStorageManager
 from src.docking_engine import DockingEngine
@@ -130,8 +131,53 @@ class JsApi:
     def saveSetting(self, key: str, val: str) -> None:
         self.db.set_setting(key, str(val))
 
+    def backupData(self) -> dict[str, Any]:
+        """弹出系统保存文件对话框，将当前数据完整导出为 JSON"""
+        if not self._window:
+            return {"success": False, "error": "窗口未初始化"}
+        now_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        default_filename = f"ChatHelper_Backup_{now_str}.json"
+        try:
+            result = self._window.create_file_dialog(
+                webview.SAVE_DIALOG,
+                save_filename=default_filename,
+                file_types=("JSON 备份文件 (*.json)", "所有文件 (*.*)")
+            )
+            if not result:
+                return {"success": False, "cancelled": True}
+            
+            save_path = result if isinstance(result, str) else result[0]
+            if not save_path.lower().endswith(".json"):
+                save_path += ".json"
+            
+            ok, msg = self.db.export_data(save_path)
+            return {"success": ok, "message": msg, "path": save_path}
+        except Exception as e:
+            return {"success": False, "error": f"导出失败: {e}"}
+
+    def restoreData(self) -> dict[str, Any]:
+        """弹出系统打开文件对话框，选择 JSON 备份进行全量覆盖还原"""
+        if not self._window:
+            return {"success": False, "error": "窗口未初始化"}
+        try:
+            result = self._window.create_file_dialog(
+                webview.OPEN_DIALOG,
+                allow_multiple=False,
+                file_types=("JSON 备份文件 (*.json)", "所有文件 (*.*)")
+            )
+            if not result:
+                return {"success": False, "cancelled": True}
+            
+            file_path = result[0] if isinstance(result, (list, tuple)) else result
+            ok, msg, stats = self.db.import_data(file_path)
+            return {"success": ok, "message": msg, "stats": stats}
+        except Exception as e:
+            return {"success": False, "error": f"还原失败: {e}"}
+
     def backupDatabase(self, path: str) -> bool:
-        return self.db.backup_database(path)
+        ok, _ = self.db.export_data(path)
+        return ok
 
     def restoreDatabase(self, path: str) -> bool:
-        return self.db.restore_database(path)
+        ok, _, _ = self.db.import_data(path)
+        return ok

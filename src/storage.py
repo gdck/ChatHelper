@@ -45,7 +45,7 @@ class JsonStorageManager:
                 try:
                     with open(self.data_path, "r", encoding="utf-8") as f:
                         loaded = json.load(f)
-                        if isinstance(loaded, dict):
+                        if isinstance(loaded, dict) and "categories" in loaded and "quick_replies" in loaded:
                             self._data["categories"] = loaded.get("categories", [])
                             self._data["quick_replies"] = loaded.get("quick_replies", [])
                             self._data["app_settings"] = {**self._data["app_settings"], **loaded.get("app_settings", {})}
@@ -242,22 +242,87 @@ class JsonStorageManager:
             self._data["app_settings"][key] = str(value)
             self._save()
 
-    def backup_database(self, backup_path: str) -> bool:
+    def export_data(self, backup_path: str) -> tuple[bool, str]:
+        """将完整数据安全导出至用户指定的备份文件路径"""
         with self._lock:
             try:
-                shutil.copyfile(self.data_path, backup_path)
-                return True
-            except Exception:
-                return False
+                os.makedirs(os.path.dirname(os.path.abspath(backup_path)), exist_ok=True)
+                with open(backup_path, "w", encoding="utf-8") as f:
+                    json.dump(self._data, f, ensure_ascii=False, indent=2)
+                return True, "备份文件已成功导出"
+            except Exception as e:
+                return False, f"导出备份失败: {e}"
+
+    def import_data(self, restore_path: str) -> tuple[bool, str, dict[str, int]]:
+        """导入并严格校验备份 JSON 文件，执行全量覆盖还原"""
+        if not os.path.exists(restore_path):
+            return False, "备份文件不存在", {}
+
+        with self._lock:
+            try:
+                with open(restore_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+
+                if not isinstance(data, dict):
+                    return False, "备份数据格式错误，顶层必须为 JSON 对象", {}
+
+                if "categories" not in data or not isinstance(data["categories"], list):
+                    return False, "缺少有效的 categories 分类列表", {}
+
+                if "quick_replies" not in data or not isinstance(data["quick_replies"], list):
+                    return False, "缺少有效的 quick_replies 话术列表", {}
+
+                # 校验每一个分类对象
+                cleaned_categories = []
+                for cat in data["categories"]:
+                    if not isinstance(cat, dict) or "name" not in cat:
+                        continue
+                    cleaned_categories.append({
+                        "id": int(cat.get("id", len(cleaned_categories) + 1)),
+                        "name": str(cat["name"]).strip(),
+                        "sort_order": int(cat.get("sort_order", 0))
+                    })
+
+                # 校验每一个话术对象
+                cleaned_replies = []
+                for rep in data["quick_replies"]:
+                    if not isinstance(rep, dict) or "title" not in rep:
+                        continue
+                    cleaned_replies.append({
+                        "id": int(rep.get("id", len(cleaned_replies) + 1)),
+                        "category_id": int(rep.get("category_id", 0)),
+                        "title": str(rep["title"]).strip(),
+                        "content": str(rep.get("content", "")),
+                        "attachments": list(rep.get("attachments", [])) if isinstance(rep.get("attachments"), list) else [],
+                        "tags": list(rep.get("tags", [])) if isinstance(rep.get("tags"), list) else [],
+                        "sort_order": int(rep.get("sort_order", 0)),
+                        "use_count": int(rep.get("use_count", 0))
+                    })
+
+                # 覆盖写入
+                self._data["categories"] = cleaned_categories
+                self._data["quick_replies"] = cleaned_replies
+                if "app_settings" in data and isinstance(data["app_settings"], dict):
+                    self._data["app_settings"] = {**self._data["app_settings"], **data["app_settings"]}
+
+                self._save()
+                stats = {
+                    "category_count": len(cleaned_categories),
+                    "reply_count": len(cleaned_replies)
+                }
+                return True, f"数据还原成功！已恢复 {stats['category_count']} 个分类，{stats['reply_count']} 条话术", stats
+            except json.JSONDecodeError as e:
+                return False, f"JSON 解析失败，文件内容损坏: {e}", {}
+            except Exception as e:
+                return False, f"还原数据时发生异常: {e}", {}
+
+    def backup_database(self, backup_path: str) -> bool:
+        ok, _ = self.export_data(backup_path)
+        return ok
 
     def restore_database(self, restore_path: str) -> bool:
-        with self._lock:
-            try:
-                shutil.copyfile(restore_path, self.data_path)
-                self.init_storage()
-                return True
-            except Exception:
-                return False
+        ok, _, _ = self.import_data(restore_path)
+        return ok
 
     def close(self) -> None:
         pass
