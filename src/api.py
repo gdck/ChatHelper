@@ -12,6 +12,17 @@ class JsApi:
         self.dock = dock
         self.send = send
         self._window: webview.Window | None = None
+        
+        # 初始化吸附引擎的启用软件列表
+        try:
+            import json
+            raw_ims = self.db.get_setting("supported_ims", "")
+            if raw_ims:
+                keys = json.loads(raw_ims)
+                if isinstance(keys, list):
+                    self.dock.set_enabled_ims(keys)
+        except Exception:
+            pass
 
     def set_window(self, window: webview.Window) -> None:
         self._window = window
@@ -126,10 +137,19 @@ class JsApi:
             "enter_delay": self.db.get_setting("enter_delay", "120"),
             "typewriter_delay": self.db.get_setting("typewriter_delay", "500"),
             "repeat_delay": self.db.get_setting("repeat_delay", "500"),
+            "supported_ims": self.db.get_setting("supported_ims", '["wechat", "wxwork", "qq", "tim", "dingtalk", "aliworkbench"]'),
         }
 
     def saveSetting(self, key: str, val: str) -> None:
         self.db.set_setting(key, str(val))
+        if key == "supported_ims":
+            try:
+                import json
+                keys = json.loads(val)
+                if isinstance(keys, list):
+                    self.dock.set_enabled_ims(keys)
+            except Exception:
+                pass
 
     def backupData(self) -> dict[str, Any]:
         """弹出系统保存文件对话框，将当前数据完整导出为 JSON"""

@@ -7,6 +7,7 @@
       </div>
 
       <div class="modal-body">
+        <!-- 界面风格 -->
         <div class="setting-item">
           <div class="setting-info">
             <span class="setting-label">暗黑主题模式</span>
@@ -15,40 +16,35 @@
           <input type="checkbox" v-model="darkMode" @change="toggleTheme" class="switch-checkbox" />
         </div>
 
-        <div class="setting-item">
-          <div class="setting-info">
-            <span class="setting-label">逐字发送间隔 (毫秒)</span>
-            <span class="setting-desc">逐字慢发打字机模式下每个字符的发送等待时间 (默认 500)</span>
-          </div>
-          <input type="number" v-model.number="typewriterDelay" min="50" step="50" class="setting-input" />
-        </div>
+        <hr class="divider" />
 
-        <div class="setting-item">
-          <div class="setting-info">
-            <span class="setting-label">连发 3 次间隔 (毫秒)</span>
-            <span class="setting-desc">连续发送 3 次模式下每轮发送之间的等待时间 (默认 500)</span>
+        <!-- 支持的 IM 聊天软件复选 -->
+        <div class="im-section">
+          <div class="section-header">
+            <span class="section-title">支持的聊天软件 (吸附目标)</span>
+            <span class="section-desc">勾选需要自动吸附跟随的客户端</span>
           </div>
-          <input type="number" v-model.number="repeatDelay" min="100" step="50" class="setting-input" />
-        </div>
-
-        <div class="setting-item">
-          <div class="setting-info">
-            <span class="setting-label">粘贴延时补偿 (毫秒)</span>
-            <span class="setting-desc">激活微信后模拟 Ctrl+V 的前置等待时间 (默认 120)</span>
+          <div class="im-grid">
+            <label
+              v-for="im in imList"
+              :key="im.key"
+              class="im-card"
+              :class="{ active: selectedIms.includes(im.key) }"
+            >
+              <input
+                type="checkbox"
+                :value="im.key"
+                v-model="selectedIms"
+                class="im-checkbox"
+              />
+              <span class="im-name">{{ im.name }}</span>
+            </label>
           </div>
-          <input type="number" v-model.number="pasteDelay" min="20" step="20" class="setting-input" />
-        </div>
-
-        <div class="setting-item">
-          <div class="setting-info">
-            <span class="setting-label">回车延时补偿 (毫秒)</span>
-            <span class="setting-desc">粘贴内容后模拟 Enter 回车发送的等待时间 (默认 120)</span>
-          </div>
-          <input type="number" v-model.number="enterDelay" min="20" step="20" class="setting-input" />
         </div>
 
         <hr class="divider" />
 
+        <!-- 数据管理与备份 -->
         <div class="backup-section">
           <span class="section-title">数据管理与备份 (JSON)</span>
           <div class="backup-buttons">
@@ -78,19 +74,31 @@ import { X, Download, Upload } from 'lucide-vue-next'
 const emit = defineEmits(['close', 'theme-changed', 'toast', 'data-restored'])
 
 const darkMode = ref(false)
-const typewriterDelay = ref(500)
-const repeatDelay = ref(500)
-const pasteDelay = ref(120)
-const enterDelay = ref(120)
+const selectedIms = ref(['wechat', 'wxwork', 'qq', 'tim', 'dingtalk', 'aliworkbench'])
+
+const imList = [
+  { key: 'wechat', name: '微信' },
+  { key: 'wxwork', name: '企业微信' },
+  { key: 'qq', name: 'QQ' },
+  { key: 'tim', name: 'TIM' },
+  { key: 'dingtalk', name: '钉钉' },
+  { key: 'aliworkbench', name: '千牛' },
+]
 
 onMounted(async () => {
   if (window.pywebview && window.pywebview.api) {
     const s = await window.pywebview.api.getSettings()
     darkMode.value = s.dark_mode === '1'
-    typewriterDelay.value = parseInt(s.typewriter_delay || '500')
-    repeatDelay.value = parseInt(s.repeat_delay || '500')
-    pasteDelay.value = parseInt(s.paste_delay || '120')
-    enterDelay.value = parseInt(s.enter_delay || '120')
+    if (s.supported_ims) {
+      try {
+        const parsed = JSON.parse(s.supported_ims)
+        if (Array.isArray(parsed)) {
+          selectedIms.value = parsed
+        }
+      } catch (e) {
+        console.error('Failed to parse supported_ims', e)
+      }
+    }
   }
 })
 
@@ -101,10 +109,7 @@ function toggleTheme() {
 async function saveSettings() {
   if (window.pywebview && window.pywebview.api) {
     await window.pywebview.api.saveSetting('dark_mode', darkMode.value ? '1' : '0')
-    await window.pywebview.api.saveSetting('typewriter_delay', String(typewriterDelay.value))
-    await window.pywebview.api.saveSetting('repeat_delay', String(repeatDelay.value))
-    await window.pywebview.api.saveSetting('paste_delay', String(pasteDelay.value))
-    await window.pywebview.api.saveSetting('enter_delay', String(enterDelay.value))
+    await window.pywebview.api.saveSetting('supported_ims', JSON.stringify(selectedIms.value))
   }
   emit('toast', { type: 'success', message: '系统设置保存成功' })
   emit('close')
@@ -208,31 +213,69 @@ async function handleRestore() {
   color: var(--text-secondary);
   line-height: 1.3;
 }
-.setting-input {
-  width: 70px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 4px 8px;
-  color: var(--text-primary);
-  font-size: 12px;
-  outline: none;
-  text-align: center;
-}
 .divider {
   border: none;
   border-top: 1px solid var(--border-color);
-  margin: 4px 0;
+  margin: 2px 0;
+}
+.im-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.section-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.section-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.im-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 4px;
+}
+.im-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  user-select: none;
+}
+.im-card:hover {
+  border-color: var(--accent-color);
+}
+.im-card.active {
+  background: var(--accent-light);
+  border-color: var(--accent-color);
+}
+.im-checkbox {
+  accent-color: var(--accent-color);
+  cursor: pointer;
+}
+.im-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
 }
 .backup-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-.section-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
 }
 .backup-buttons {
   display: flex;

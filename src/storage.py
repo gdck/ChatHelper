@@ -29,7 +29,8 @@ class JsonStorageManager:
                 "paste_delay": "120",
                 "enter_delay": "120",
                 "typewriter_delay": "500",
-                "repeat_delay": "500"
+                "repeat_delay": "500",
+                "supported_ims": '["wechat", "wxwork", "qq", "tim", "dingtalk", "aliworkbench"]'
             }
         }
         self.init_storage()

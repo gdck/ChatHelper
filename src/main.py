@@ -49,7 +49,7 @@ def create_app():
         url = "http://localhost:5173"
 
     window = webview.create_window(
-        title="微信聊天助手",
+        title="聊天助手",
         url=url,
         js_api=api,
         width=480,
@@ -85,7 +85,7 @@ def create_app():
     dock.on_target_changed = on_target_title
 
     def on_loaded():
-        hwnd = ctypes.windll.user32.FindWindowW(None, "微信聊天助手")
+        hwnd = ctypes.windll.user32.FindWindowW(None, "聊天助手")
         if hwnd:
             # 纯 POPUP 与 TOOLWINDOW 扩展样式，解除 Windows 窗口最小尺寸限制
             WS_POPUP = 0x80000000

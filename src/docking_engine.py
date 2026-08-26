@@ -59,6 +59,16 @@ class DockingEngine:
         "aliworkbench.exe": ["StandardFrame", "Chrome_WidgetWin_0", "Chrome_WidgetWin_1"],
     }
 
+    PROCESS_TO_KEY = {
+        "wechat.exe": "wechat",
+        "weixin.exe": "wechat",
+        "wxwork.exe": "wxwork",
+        "qq.exe": "qq",
+        "tim.exe": "tim",
+        "dingtalk.exe": "dingtalk",
+        "aliworkbench.exe": "aliworkbench",
+    }
+
     PROCESS_DISPLAY_NAMES = {
         "qq.exe": "QQ",
         "tim.exe": "TIM",
@@ -119,6 +129,11 @@ class DockingEngine:
         self._hook_callback = None
         self.on_target_changed = None
         self._lock = threading.Lock()
+        self.enabled_ims: set[str] = {"wechat", "wxwork", "qq", "tim", "dingtalk", "aliworkbench"}
+
+    def set_enabled_ims(self, keys: list[str]) -> None:
+        self.enabled_ims = set(keys)
+        self.update_dock_position(force=True)
 
     def set_helper_hwnd(self, hwnd: int) -> None:
         self.helper_hwnd = hwnd
@@ -204,29 +219,42 @@ class DockingEngine:
         # 1. 检查进程名是否属于支持的 IM 客户端
         p_name = (info.process_name or "").lower()
         matched_classes = None
+        matched_key = None
         for proc, classes in self.SUPPORTED_PROCESSES.items():
             if proc in p_name:
                 matched_classes = classes
+                matched_key = self.PROCESS_TO_KEY.get(proc)
                 break
 
         if matched_classes is None:
             # 模糊前缀匹配，排除非主界面的辅助进程（如 WeChatAppEx/QQExternal）
             if "weixin" in p_name:
                 matched_classes = self.SUPPORTED_PROCESSES["weixin.exe"]
+                matched_key = "wechat"
             elif "wechat" in p_name and not "wechatappex" in p_name:
                 matched_classes = self.SUPPORTED_PROCESSES["wechat.exe"]
+                matched_key = "wechat"
             elif "wxwork" in p_name:
                 matched_classes = self.SUPPORTED_PROCESSES["wxwork.exe"]
+                matched_key = "wxwork"
             elif "qq" in p_name and not "qqexternal" in p_name:
                 matched_classes = self.SUPPORTED_PROCESSES["qq.exe"]
+                matched_key = "qq"
             elif "tim" in p_name:
                 matched_classes = self.SUPPORTED_PROCESSES["tim.exe"]
+                matched_key = "tim"
             elif "dingtalk" in p_name:
                 matched_classes = self.SUPPORTED_PROCESSES["dingtalk.exe"]
+                matched_key = "dingtalk"
             elif "aliworkbench" in p_name:
                 matched_classes = self.SUPPORTED_PROCESSES["aliworkbench.exe"]
+                matched_key = "aliworkbench"
             else:
                 return False
+
+        # 检查该 IM 是否在用户启用的支持列表中
+        if matched_key and matched_key not in self.enabled_ims:
+            return False
 
         # 2. 过滤无效弹窗/提示框标题
         clean_title = (info.title or "").strip()
