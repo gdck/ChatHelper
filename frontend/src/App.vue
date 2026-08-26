@@ -328,7 +328,7 @@ async function handleSendReply(replyId, mode) {
   if (window.pywebview && window.pywebview.api) {
     const res = await window.pywebview.api.sendReply(replyId, mode)
     if (!res.success) {
-      showToast('error', res.error || '发送失败，请确保微信窗口处于激活状态')
+      showToast('error', res.error || '发送失败，请确保微信/QQ窗口处于激活状态')
     } else {
       showToast('success', '发送指令已执行')
       await loadReplies()
@@ -375,20 +375,18 @@ onMounted(async () => {
     }
   })
 
-  await loadCategories()
-  await loadReplies()
-
-  // 建立 250ms 实时标题心跳同步，确保聊天对象切换时标题秒级响应
+  // 周期性轮询兜底，确保跨软件切换窗口时标题100%实时同步
   setInterval(async () => {
     if (window.pywebview && window.pywebview.api && window.pywebview.api.getTargetTitle) {
-      try {
-        const t = await window.pywebview.api.getTargetTitle()
-        if (t !== targetTitle.value) {
-          targetTitle.value = t
-        }
-      } catch (e) {}
+      const cur = await window.pywebview.api.getTargetTitle()
+      if (cur && cur !== targetTitle.value) {
+        targetTitle.value = cur
+      }
     }
-  }, 250)
+  }, 400)
+
+  await loadCategories()
+  await loadReplies()
 })
 </script>
 

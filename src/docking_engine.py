@@ -36,6 +36,16 @@ class DockingEngine:
         "aliworkbench.exe": ["StandardFrame", "Chrome_WidgetWin_0", "Chrome_WidgetWin_1"],
     }
 
+    PROCESS_DISPLAY_NAMES = {
+        "qq.exe": "QQ",
+        "tim.exe": "TIM",
+        "weixin.exe": "微信",
+        "wechat.exe": "微信",
+        "wxwork.exe": "企业微信",
+        "dingtalk.exe": "钉钉",
+        "aliworkbench.exe": "千牛"
+    }
+
     EXCLUDED_TITLES = {
         "提示", "确认", "警告", "错误", "删除", "登录", "QQ登录", "退出", "转发",
         "截图", "表情", "查看图片", "图片查看器", "设置", "系统设置", "文件传输", "关于",
@@ -79,16 +89,21 @@ class DockingEngine:
         length = self.user32.GetWindowTextLengthW(hwnd)
         buff = ctypes.create_unicode_buffer(length + 1)
         self.user32.GetWindowTextW(hwnd, buff, length + 1)
-        title = buff.value
+        title = buff.value.strip()
 
         class_buff = ctypes.create_unicode_buffer(512)
         self.user32.GetClassNameW(hwnd, class_buff, 512)
-        class_name = class_buff.value
+        class_name = class_buff.value.strip()
 
-        # 使用标准权限 PROCESS_QUERY_LIMITED_INFORMATION (0x1000)，无视 UAC 与权限阻拦
-        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-        h_proc = self.kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        pid = wintypes.DWORD()
+        self.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+
         proc_name = ""
+        # 优先使用 PROCESS_QUERY_LIMITED_INFORMATION (0x1000)，不受 UAC/进程权限限制
+        h_proc = self.kernel32.OpenProcess(0x1000, False, pid)
+        if not h_proc:
+            h_proc = self.kernel32.OpenProcess(0x0400 | 0x0010, False, pid)
+
         if h_proc:
             name_buff = ctypes.create_unicode_buffer(260)
             size = wintypes.DWORD(260)
@@ -96,7 +111,8 @@ class DockingEngine:
                 proc_name = name_buff.value.split("\\")[-1].lower()
             self.kernel32.CloseHandle(h_proc)
 
-        if not proc_name:
+        # 托底方案：若 OpenProcess 失败，使用 psutil 获取进程名称
+        if not proc_name and pid.value:
             try:
                 import psutil
                 proc_name = psutil.Process(pid.value).name().lower()
@@ -115,7 +131,7 @@ class DockingEngine:
         if not info:
             return False
 
-        # 1. 检查进程名是否属于支持的 IM 客户端（兼容重构后的 Weixin.exe、WeChat.exe、QQ 等）
+        # 1. 检查进程名是否属于支持的 IM 客户端
         p_name = (info.process_name or "").lower()
         matched_classes = None
         for proc, classes in self.SUPPORTED_PROCESSES.items():
@@ -176,8 +192,13 @@ class DockingEngine:
 
         info = self._get_window_info(target_hwnd)
         if info and self.is_supported_target(info):
-            display_title = info.title if info.title else f"{info.process_name}"
-            # 实时检测：无论是窗口句柄切换，还是在同一微信窗口内切换会话导致标题变化，均实时通知前端
+            # 获取友好展示标题：优先取真实窗口标题，无标题时取软件友好名（如 QQ、微信）
+            if info.title:
+                display_title = info.title
+            else:
+                display_title = self.PROCESS_DISPLAY_NAMES.get(info.process_name, info.process_name.replace(".exe", "").upper())
+
+            # 实时检测：无论是窗口句柄切换，还是在同一软件内切换会话导致标题变化，均实时通知前端
             if target_hwnd != self.current_target_hwnd or display_title != self.current_target_title:
                 self.current_target_hwnd = target_hwnd
                 self.current_target_title = display_title
