@@ -75,21 +75,23 @@ const menuStyle = computed(() => {
   const winWidth = window.innerWidth
   const rect = props.anchorRect
 
-  // 水平定位：默认右对齐到按钮，且不超出屏幕
-  let left = rect.right - menuWidth
+  // 水平定位：如果是右键点击 (width === 0)，以鼠标 x 展开，否则右对齐到按钮
+  let left
+  if (rect.width === 0) {
+    left = rect.left
+  } else {
+    left = rect.right - menuWidth
+  }
   if (left < 8) left = 8
   if (left + menuWidth > winWidth - 8) left = winWidth - menuWidth - 8
 
-  // 垂直定位：根据屏幕可用空间自动向上或向下弹出（避免被顶部 Header/底部边缘遮挡）
+  // 垂直定位：自动避让上下边缘
   let top
   if (rect.bottom + menuHeight + 8 <= winHeight) {
-    // 空间充裕，向下展开
     top = rect.bottom + 4
   } else if (rect.top - menuHeight - 8 >= 0) {
-    // 空间不足，向上展开
     top = rect.top - menuHeight - 4
   } else {
-    // 居中适配
     top = Math.max(8, winHeight - menuHeight - 8)
   }
 

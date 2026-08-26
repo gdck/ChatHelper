@@ -56,7 +56,7 @@ class DockingEngine:
     user32 = ctypes.windll.user32
     kernel32 = ctypes.windll.kernel32
 
-    def __init__(self, sidebar_width: int = 408):
+    def __init__(self, sidebar_width: int = 480):
         self.sidebar_width = sidebar_width
         self.helper_hwnd: int = 0
         self.current_target_hwnd: int = 0

@@ -38,7 +38,7 @@ def create_app():
     storage = JsonStorageManager()
 
     send = SendEngine()
-    dock = DockingEngine(sidebar_width=408)
+    dock = DockingEngine(sidebar_width=480)
     api = JsApi(storage, dock, send)
 
     # 前端资源路径探测
@@ -52,7 +52,7 @@ def create_app():
         title="微信聊天助手",
         url=url,
         js_api=api,
-        width=408,
+        width=480,
         height=700,
         min_size=(28, 28),
         frameless=True,

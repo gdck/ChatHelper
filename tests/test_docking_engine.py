@@ -2,12 +2,12 @@ import pytest
 from src.docking_engine import DockingEngine, TargetWindowInfo
 
 def test_docking_rect_calculations():
-    engine = DockingEngine(sidebar_width=408)
+    engine = DockingEngine(sidebar_width=480)
     target_rect = (100, 100, 900, 700) # left, top, right, bottom
     
-    # 展开模式：吸附在右侧，宽度 408
-    expanded_pos = engine.calculate_dock_pos(target_rect, collapsed=False, sidebar_width=408)
-    assert expanded_pos == (900, 100, 408, 600)
+    # 展开模式：吸附在右侧，宽度 480
+    expanded_pos = engine.calculate_dock_pos(target_rect, collapsed=False, sidebar_width=480)
+    assert expanded_pos == (900, 100, 480, 600)
 
     # 折叠模式：右上角 28x28 极简微标 (Delphi 原版逻辑)
     collapsed_pos = engine.calculate_dock_pos(target_rect, collapsed=True, icon_size=28)

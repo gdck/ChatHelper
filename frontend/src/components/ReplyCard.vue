@@ -2,6 +2,7 @@
   <div
     class="reply-compact-row"
     @dblclick="$emit('send', reply.id, 'normal')"
+    @contextmenu.prevent="handleRightClick($event)"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
   >
@@ -22,12 +23,12 @@
         <Send :size="11" />
         <span>发送</span>
       </button>
-      <button class="more-btn" @click.stop="handleOpenMenu($event)" title="更多发送模式与操作">
+      <button class="more-btn" @click.stop="handleOpenMenu($event)" title="更多发送模式与操作 (右键也可弹出)">
         <MoreVertical :size="13" />
       </button>
     </div>
 
-    <!-- 悬浮完整内容预览 Tooltip -->
+    <!-- 悬浮完整内容预览 Tooltip（智能上下避让，绝不遮挡当前记录） -->
     <Teleport to="body">
       <div
         v-if="showTooltip"
@@ -67,21 +68,23 @@ const emit = defineEmits(['send', 'edit', 'delete', 'open-menu'])
 
 const isHovered = ref(false)
 const showTooltip = ref(false)
-const targetRect = reactive({ top: 0, left: 0, height: 0 })
+const targetRect = reactive({ top: 0, bottom: 0, left: 0, right: 0, height: 0 })
 let hoverTimer = null
 
 function handleMouseEnter(e) {
   isHovered.value = true
   const rect = e.currentTarget.getBoundingClientRect()
   targetRect.top = rect.top
+  targetRect.bottom = rect.bottom
   targetRect.left = rect.left
+  targetRect.right = rect.right
   targetRect.height = rect.height
 
   hoverTimer = setTimeout(() => {
     if (isHovered.value) {
       showTooltip.value = true
     }
-  }, 450)
+  }, 400)
 }
 
 function handleMouseLeave() {
@@ -93,18 +96,46 @@ function handleMouseLeave() {
   }
 }
 
+// 智能上下避让计算：严格避开当前条目区域
 const tooltipStyle = computed(() => {
-  let top = targetRect.top - 8
-  const maxTop = window.innerHeight - 180
-  if (top > maxTop) top = maxTop
-  if (top < 10) top = 10
+  const vh = window.innerHeight
+  // 如果卡片位于视口上半部，Tooltip 显示在当前行下方；否则显示在当前行上方
+  const showBelow = targetRect.top < vh * 0.52
 
-  return {
-    top: `${top}px`,
-    left: '12px',
-    maxWidth: '310px'
+  if (showBelow) {
+    return {
+      top: `${targetRect.bottom + 6}px`,
+      left: '12px',
+      right: '52px',
+      maxHeight: `${Math.max(100, vh - targetRect.bottom - 20)}px`
+    }
+  } else {
+    return {
+      bottom: `${vh - targetRect.top + 6}px`,
+      left: '12px',
+      right: '52px',
+      maxHeight: `${Math.max(100, targetRect.top - 20)}px`
+    }
   }
 })
+
+function handleRightClick(event) {
+  // 右键时立刻隐藏 Tooltip
+  showTooltip.value = false
+  if (hoverTimer) {
+    clearTimeout(hoverTimer)
+    hoverTimer = null
+  }
+  const rect = {
+    left: event.clientX,
+    top: event.clientY,
+    right: event.clientX,
+    bottom: event.clientY,
+    width: 0,
+    height: 0
+  }
+  emit('open-menu', rect, props.reply)
+}
 
 function handleOpenMenu(event) {
   showTooltip.value = false
@@ -224,19 +255,20 @@ function handleOpenMenu(event) {
   color: var(--text-primary);
 }
 
-/* Tooltip 预览卡片 */
+/* Tooltip 预览卡片（半透明磨砂质感，垂直智能避让） */
 .hover-preview-tooltip {
   position: fixed;
   z-index: 1000;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   padding: 10px 12px;
   pointer-events: none;
-  animation: fadeIn 0.15s ease-out;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  animation: fadeIn 0.14s ease-out;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-sizing: border-box;
 }
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-4px); }
@@ -265,7 +297,6 @@ function handleOpenMenu(event) {
   color: var(--text-primary);
   white-space: pre-wrap;
   word-break: break-word;
-  max-height: 140px;
   overflow-y: hidden;
 }
 .tooltip-footer {
