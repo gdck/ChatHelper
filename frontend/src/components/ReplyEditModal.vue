@@ -17,7 +17,7 @@
         </div>
 
         <div class="form-group">
-          <label>话术标题</label>
+          <label>话术标题 <span class="required">*</span></label>
           <input
             type="text"
             v-model="form.title"
@@ -40,14 +40,14 @@
             ref="contentAreaRef"
             v-model="form.content"
             rows="5"
-            placeholder="输入回复内容，支持自动替换上方动态变量..."
+            placeholder="输入回复内容，点击上方插入动态变量..."
             class="form-textarea"
           ></textarea>
         </div>
 
         <div class="form-group">
           <div class="label-row">
-            <label>多媒体附件 (支持图片/文档/视频)</label>
+            <label>多媒体附件 (支持多图片/文档/视频)</label>
             <button class="add-file-btn" @click="chooseFiles">
               <Paperclip :size="13" />
               <span>选择文件</span>
@@ -55,7 +55,7 @@
           </div>
           <div class="attachments-list" v-if="form.attachments.length">
             <div v-for="(att, idx) in form.attachments" :key="idx" class="att-item">
-              <span class="att-name" :title="att.path">{{ att.name }}</span>
+              <span class="att-name" :title="att.path">📎 {{ att.name }}</span>
               <button class="remove-att-btn" @click="removeAttachment(idx)"><X :size="12" /></button>
             </div>
           </div>
@@ -70,7 +70,7 @@
 
       <div class="modal-footer">
         <button class="btn cancel" @click="$emit('close')">取消</button>
-        <button class="btn submit" @click="handleSubmit">保存</button>
+        <button class="btn submit" @click="handleSubmit">保存话术</button>
       </div>
     </div>
   </div>
@@ -95,7 +95,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'save'])
+const emit = defineEmits(['close', 'save', 'toast'])
 
 const isEdit = computed(() => !!(props.initialData && props.initialData.id))
 const contentAreaRef = ref(null)
@@ -144,7 +144,7 @@ function removeAttachment(idx) {
 
 function handleSubmit() {
   if (!form.title.trim()) {
-    alert('请输入话术标题')
+    emit('toast', { type: 'warning', message: '请输入话术标题' })
     return
   }
   emit('save', { ...form })
@@ -155,8 +155,9 @@ function handleSubmit() {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -207,6 +208,9 @@ function handleSubmit() {
   font-size: 12px;
   font-weight: 500;
   color: var(--text-secondary);
+}
+.required {
+  color: #ef4444;
 }
 .label-row {
   display: flex;
@@ -294,8 +298,9 @@ function handleSubmit() {
 .btn {
   padding: 5px 14px;
   border-radius: 6px;
-  font-size: 12.5px;
+  font-size: 12px;
   cursor: pointer;
+  font-weight: 500;
 }
 .btn.cancel {
   background: var(--bg-secondary);
@@ -306,6 +311,5 @@ function handleSubmit() {
   background: var(--accent-color);
   border: none;
   color: white;
-  font-weight: 500;
 }
 </style>

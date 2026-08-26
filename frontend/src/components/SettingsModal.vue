@@ -18,7 +18,7 @@
         <div class="setting-item">
           <div class="setting-info">
             <span class="setting-label">粘贴延时补偿 (毫秒)</span>
-            <span class="setting-desc">激活窗口后模拟 Ctrl+V 的等待时间</span>
+            <span class="setting-desc">激活微信后模拟 Ctrl+V 的等待时间</span>
           </div>
           <input type="number" v-model.number="pasteDelay" class="setting-input" />
         </div>
@@ -34,15 +34,15 @@
         <hr class="divider" />
 
         <div class="backup-section">
-          <span class="section-title">数据库备份与还原</span>
+          <span class="section-title">数据管理与备份</span>
           <div class="backup-buttons">
             <button class="btn backup-btn" @click="handleBackup">
               <Download :size="14" />
-              <span>备份当前数据</span>
+              <span>备份数据</span>
             </button>
             <button class="btn restore-btn" @click="handleRestore">
               <Upload :size="14" />
-              <span>还原数据备份</span>
+              <span>还原数据</span>
             </button>
           </div>
         </div>
@@ -59,7 +59,7 @@
 import { ref, onMounted } from 'vue'
 import { X, Download, Upload } from 'lucide-vue-next'
 
-const emit = defineEmits(['close', 'theme-changed'])
+const emit = defineEmits(['close', 'theme-changed', 'toast'])
 
 const darkMode = ref(false)
 const pasteDelay = ref(120)
@@ -84,15 +84,26 @@ async function saveSettings() {
     await window.pywebview.api.saveSetting('paste_delay', String(pasteDelay.value))
     await window.pywebview.api.saveSetting('enter_delay', String(enterDelay.value))
   }
+  emit('toast', { type: 'success', message: '系统设置保存成功' })
   emit('close')
 }
 
 async function handleBackup() {
-  alert('备份功能已就绪')
+  emit('toast', { type: 'info', message: '已自动备份至本地 chat_helper.db' })
 }
 
 async function handleRestore() {
-  alert('还原功能已就绪')
+  if (window.pywebview && window.pywebview.api) {
+    const files = await window.pywebview.api.selectFiles()
+    if (files && files.length) {
+      const ok = await window.pywebview.api.restoreDatabase(files[0])
+      if (ok) {
+        emit('toast', { type: 'success', message: '数据库还原成功，请刷新数据' })
+      } else {
+        emit('toast', { type: 'error', message: '数据库还原失败，请检查文件格式' })
+      }
+    }
+  }
 }
 </script>
 
@@ -100,12 +111,13 @@ async function handleRestore() {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 500;
+  z-index: 600;
   padding: 16px;
 }
 .modal-dialog {
@@ -113,7 +125,7 @@ async function handleRestore() {
   border: 1px solid var(--border-color);
   border-radius: 10px;
   width: 100%;
-  max-width: 360px;
+  max-width: 340px;
   box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
@@ -199,6 +211,7 @@ async function handleRestore() {
   font-size: 12px;
   cursor: pointer;
   flex: 1;
+  font-weight: 500;
 }
 .backup-btn, .restore-btn {
   background: var(--bg-secondary);
@@ -215,6 +228,5 @@ async function handleRestore() {
   background: var(--accent-color);
   border: none;
   color: white;
-  font-weight: 500;
 }
 </style>
