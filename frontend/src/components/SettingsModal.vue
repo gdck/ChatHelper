@@ -17,18 +17,34 @@
 
         <div class="setting-item">
           <div class="setting-info">
-            <span class="setting-label">粘贴延时补偿 (毫秒)</span>
-            <span class="setting-desc">激活微信后模拟 Ctrl+V 的等待时间</span>
+            <span class="setting-label">逐字发送间隔 (毫秒)</span>
+            <span class="setting-desc">逐字慢发打字机模式下每个字符的发送等待时间 (默认 500)</span>
           </div>
-          <input type="number" v-model.number="pasteDelay" class="setting-input" />
+          <input type="number" v-model.number="typewriterDelay" min="50" step="50" class="setting-input" />
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">连发 3 次间隔 (毫秒)</span>
+            <span class="setting-desc">连续发送 3 次模式下每轮发送之间的等待时间 (默认 500)</span>
+          </div>
+          <input type="number" v-model.number="repeatDelay" min="100" step="50" class="setting-input" />
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">粘贴延时补偿 (毫秒)</span>
+            <span class="setting-desc">激活微信后模拟 Ctrl+V 的前置等待时间 (默认 120)</span>
+          </div>
+          <input type="number" v-model.number="pasteDelay" min="20" step="20" class="setting-input" />
         </div>
 
         <div class="setting-item">
           <div class="setting-info">
             <span class="setting-label">回车延时补偿 (毫秒)</span>
-            <span class="setting-desc">粘贴内容后模拟 Enter 发送的等待时间</span>
+            <span class="setting-desc">粘贴内容后模拟 Enter 回车发送的等待时间 (默认 120)</span>
           </div>
-          <input type="number" v-model.number="enterDelay" class="setting-input" />
+          <input type="number" v-model.number="enterDelay" min="20" step="20" class="setting-input" />
         </div>
 
         <hr class="divider" />
@@ -62,6 +78,8 @@ import { X, Download, Upload } from 'lucide-vue-next'
 const emit = defineEmits(['close', 'theme-changed', 'toast'])
 
 const darkMode = ref(false)
+const typewriterDelay = ref(500)
+const repeatDelay = ref(500)
 const pasteDelay = ref(120)
 const enterDelay = ref(120)
 
@@ -69,6 +87,8 @@ onMounted(async () => {
   if (window.pywebview && window.pywebview.api) {
     const s = await window.pywebview.api.getSettings()
     darkMode.value = s.dark_mode === '1'
+    typewriterDelay.value = parseInt(s.typewriter_delay || '500')
+    repeatDelay.value = parseInt(s.repeat_delay || '500')
     pasteDelay.value = parseInt(s.paste_delay || '120')
     enterDelay.value = parseInt(s.enter_delay || '120')
   }
@@ -81,6 +101,8 @@ function toggleTheme() {
 async function saveSettings() {
   if (window.pywebview && window.pywebview.api) {
     await window.pywebview.api.saveSetting('dark_mode', darkMode.value ? '1' : '0')
+    await window.pywebview.api.saveSetting('typewriter_delay', String(typewriterDelay.value))
+    await window.pywebview.api.saveSetting('repeat_delay', String(repeatDelay.value))
     await window.pywebview.api.saveSetting('paste_delay', String(pasteDelay.value))
     await window.pywebview.api.saveSetting('enter_delay', String(enterDelay.value))
   }
@@ -125,7 +147,7 @@ async function handleRestore() {
   border: 1px solid var(--border-color);
   border-radius: 10px;
   width: 100%;
-  max-width: 340px;
+  max-width: 360px;
   box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
@@ -152,16 +174,20 @@ async function handleRestore() {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  max-height: 480px;
+  overflow-y: auto;
 }
 .setting-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
 }
 .setting-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
 }
 .setting-label {
   font-size: 12.5px;
@@ -170,6 +196,7 @@ async function handleRestore() {
 .setting-desc {
   font-size: 11px;
   color: var(--text-secondary);
+  line-height: 1.3;
 }
 .setting-input {
   width: 70px;

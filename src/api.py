@@ -69,6 +69,13 @@ class JsApi:
         if not target_hwnd:
             return {"success": False, "error": "未检测到已激活的目标聊天窗口"}
 
+        delays = {
+            "paste_delay": int(self.db.get_setting("paste_delay", "120")),
+            "enter_delay": int(self.db.get_setting("enter_delay", "120")),
+            "typewriter_delay": int(self.db.get_setting("typewriter_delay", "500")),
+            "repeat_delay": int(self.db.get_setting("repeat_delay", "500")),
+        }
+
         # 异步线程执行实际按键发送，防止长时间逐字慢发阻塞 pywebview JS 通信通道导致程序死锁闪退
         def async_worker():
             try:
@@ -76,7 +83,8 @@ class JsApi:
                     target_hwnd=target_hwnd,
                     text=target_reply["content"],
                     attachments=target_reply.get("attachments", []),
-                    mode=mode
+                    mode=mode,
+                    delays=delays
                 )
                 self.db.increment_use_count(reply_id)
             except Exception as e:
@@ -112,6 +120,8 @@ class JsApi:
             "hotkey": self.db.get_setting("hotkey", "alt+space"),
             "paste_delay": self.db.get_setting("paste_delay", "120"),
             "enter_delay": self.db.get_setting("enter_delay", "120"),
+            "typewriter_delay": self.db.get_setting("typewriter_delay", "500"),
+            "repeat_delay": self.db.get_setting("repeat_delay", "500"),
         }
 
     def saveSetting(self, key: str, val: str) -> None:

@@ -67,10 +67,11 @@ class SendEngine:
         self.user32.keybd_event(self.VK_RETURN, 0, self.KEYEVENTF_KEYUP, 0)
 
     def send_payload(self, target_hwnd: int, text: str, attachments: list[dict], mode: str = "normal", delays: dict = None) -> bool:
-        delays = delays or {"paste_delay": 120, "enter_delay": 120, "char_delay": 120}
-        p_delay = delays.get("paste_delay", 120)
-        e_delay = delays.get("enter_delay", 120)
-        c_delay = delays.get("char_delay", 120)
+        delays = delays or {}
+        p_delay = int(delays.get("paste_delay", 120))
+        e_delay = int(delays.get("enter_delay", 120))
+        t_delay = int(delays.get("typewriter_delay", 500))
+        r_delay = int(delays.get("repeat_delay", 500))
 
         # 1. 核心第一步：先将全部动态占位符（{日期}、{问候语}等）完全插值替换为真实文本
         interpolated_text = self.interpolate_variables(text)
@@ -101,12 +102,12 @@ class SendEngine:
             interpolated_text = interpolated_text[::-1]
 
         if mode == "typewriter":
-            # 2. 逐字单条发送：先完成占位符替换，再对最终文本逐字发送并回车
+            # 2. 逐字单条发送：先完成占位符替换，再对最终文本逐字发送并回车（默认 500ms 间隔）
             for ch in interpolated_text:
                 if ch == "\r":
                     continue
                 if ch == "\n":
-                    time.sleep(c_delay / 1000.0)
+                    time.sleep(t_delay / 1000.0)
                     continue
 
                 try:
@@ -115,7 +116,7 @@ class SendEngine:
                         self._simulate_enter(40)
                 except Exception:
                     pass
-                time.sleep(c_delay / 1000.0)
+                time.sleep(t_delay / 1000.0)
 
             if valid_files:
                 Win32Clipboard.set_files(valid_files)
@@ -124,20 +125,23 @@ class SendEngine:
             return True
 
         repeat_count = 3 if mode == "repeat3" else 1
-        for _ in range(repeat_count):
+        for idx in range(repeat_count):
             if interpolated_text:
                 Win32Clipboard.set_text(interpolated_text)
                 self._simulate_paste(p_delay)
                 self._simulate_enter(e_delay)
-                time.sleep(0.2)
 
             # 发送多附件（支持批量注入与可靠延时）
             if valid_files:
+                time.sleep(0.1)
                 Win32Clipboard.set_files(valid_files)
                 # 微信粘贴文件前置延时
                 self._simulate_paste(max(p_delay, 200))
                 # 微信客户端加载文件需要生成缩略图与校验，回车延时需充足（500ms）
                 self._simulate_enter(max(e_delay, 500))
-                time.sleep(0.3)
+
+            # 连发 3 次模式下的轮次间隔（默认 500ms）
+            if idx < repeat_count - 1:
+                time.sleep(r_delay / 1000.0)
 
         return True

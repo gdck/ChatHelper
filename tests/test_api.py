@@ -1,4 +1,5 @@
 import pytest
+import time
 from unittest.mock import MagicMock
 from src.api import JsApi
 
@@ -22,6 +23,7 @@ def test_api_categories_and_replies():
 def test_api_send_reply():
     mock_db = MagicMock()
     mock_db.get_replies.return_value = [{"id": 10, "title": "退货说明", "content": "退货流程...", "attachments": []}]
+    mock_db.get_setting.side_effect = lambda k, d="": d
     mock_dock = MagicMock()
     mock_dock.current_target_hwnd = 12345
     mock_send = MagicMock()
@@ -30,10 +32,19 @@ def test_api_send_reply():
     api = JsApi(mock_db, mock_dock, mock_send)
     res = api.sendReply(10, "normal")
     assert res["success"] is True
+
+    # 异步守护线程触发，等待完成
+    time.sleep(0.05)
     mock_send.send_payload.assert_called_once_with(
         target_hwnd=12345,
         text="退货流程...",
         attachments=[],
-        mode="normal"
+        mode="normal",
+        delays={
+            "paste_delay": 120,
+            "enter_delay": 120,
+            "typewriter_delay": 500,
+            "repeat_delay": 500
+        }
     )
     mock_db.increment_use_count.assert_called_once_with(10)
