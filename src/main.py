@@ -83,7 +83,8 @@ def create_app():
 
     def on_target_title(title: str):
         try:
-            window.evaluate_js(f"window.dispatchEvent(new CustomEvent('target-changed', {{ detail: '{title}' }}))")
+            escaped_title = json.dumps(title or "")
+            window.evaluate_js(f"window.dispatchEvent(new CustomEvent('target-changed', {{ detail: {escaped_title} }}))")
         except Exception:
             pass
 

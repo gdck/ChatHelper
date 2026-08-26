@@ -2,14 +2,6 @@ import ctypes
 from ctypes import wintypes
 import time
 import os
-import struct
-
-try:
-    import win32clipboard
-    import win32con
-    HAS_PYWIN32 = True
-except ImportError:
-    HAS_PYWIN32 = False
 
 class DROPFILES(ctypes.Structure):
     _fields_ = [
@@ -29,7 +21,7 @@ class Win32Clipboard:
     kernel32 = ctypes.windll.kernel32
     user32 = ctypes.windll.user32
 
-    # 配置 64 位 ctypes 签名
+    # 配置 64 位 ctypes 完整类型签名，防止内存截断与隐式类型崩溃
     kernel32.GlobalAlloc.argtypes = [wintypes.UINT, ctypes.c_size_t]
     kernel32.GlobalAlloc.restype = wintypes.HGLOBAL
 
@@ -38,6 +30,9 @@ class Win32Clipboard:
 
     kernel32.GlobalUnlock.argtypes = [wintypes.HGLOBAL]
     kernel32.GlobalUnlock.restype = wintypes.BOOL
+
+    kernel32.GlobalFree.argtypes = [wintypes.HGLOBAL]
+    kernel32.GlobalFree.restype = wintypes.HGLOBAL
 
     user32.OpenClipboard.argtypes = [wintypes.HWND]
     user32.OpenClipboard.restype = wintypes.BOOL
@@ -55,44 +50,36 @@ class Win32Clipboard:
     user32.RegisterClipboardFormatW.restype = wintypes.UINT
 
     @classmethod
-    def set_text(cls, text: str, max_retries: int = 5) -> bool:
-        if HAS_PYWIN32:
-            for _ in range(max_retries):
-                try:
-                    win32clipboard.OpenClipboard()
-                    win32clipboard.EmptyClipboard()
-                    win32clipboard.SetClipboardData(win32con.CF_UNICODETEXT, text)
-                    return True
-                except Exception:
-                    time.sleep(0.05)
-                finally:
-                    try:
-                        win32clipboard.CloseClipboard()
-                    except Exception:
-                        pass
-            return False
+    def set_text(cls, text: str, max_retries: int = 10) -> bool:
+        encoded = (str(text) + "\0").encode("utf-16le")
+        total_len = len(encoded)
 
-        # Fallback ctypes
-        encoded = text.encode("utf-16le") + b"\0\0"
         for _ in range(max_retries):
-            if cls.user32.OpenClipboard(None):
-                try:
-                    cls.user32.EmptyClipboard()
-                    h_mem = cls.kernel32.GlobalAlloc(cls.GHND, len(encoded))
-                    if h_mem:
-                        p_mem = cls.kernel32.GlobalLock(h_mem)
-                        if p_mem:
-                            ctypes.memmove(p_mem, encoded, len(encoded))
-                            cls.kernel32.GlobalUnlock(h_mem)
-                            cls.user32.SetClipboardData(cls.CF_UNICODETEXT, h_mem)
-                            return True
-                finally:
-                    cls.user32.CloseClipboard()
-            time.sleep(0.05)
+            h_mem = cls.kernel32.GlobalAlloc(cls.GHND, total_len)
+            if not h_mem:
+                time.sleep(0.01)
+                continue
+
+            p_mem = cls.kernel32.GlobalLock(h_mem)
+            if p_mem:
+                ctypes.memmove(p_mem, encoded, total_len)
+                cls.kernel32.GlobalUnlock(h_mem)
+
+                if cls.user32.OpenClipboard(None):
+                    try:
+                        cls.user32.EmptyClipboard()
+                        cls.user32.SetClipboardData(cls.CF_UNICODETEXT, h_mem)
+                        return True
+                    finally:
+                        cls.user32.CloseClipboard()
+                else:
+                    cls.kernel32.GlobalFree(h_mem)
+
+            time.sleep(0.015)
         return False
 
     @classmethod
-    def set_files(cls, file_paths: list[str], max_retries: int = 5) -> bool:
+    def set_files(cls, file_paths: list[str], max_retries: int = 10) -> bool:
         valid_paths = [os.path.abspath(p) for p in file_paths if os.path.exists(p)]
         if not valid_paths:
             return False
@@ -106,49 +93,40 @@ class Win32Clipboard:
 
         total_bytes = bytes(dropfiles) + files_bytes
         total_len = len(total_bytes)
-
-        if HAS_PYWIN32:
-            drop_effect_fmt = win32clipboard.RegisterClipboardFormat("Preferred DropEffect")
-            drop_effect_val = struct.pack("I", 1)  # DROPEFFECT_COPY = 1
-            for _ in range(max_retries):
-                try:
-                    win32clipboard.OpenClipboard()
-                    win32clipboard.EmptyClipboard()
-                    win32clipboard.SetClipboardData(drop_effect_fmt, drop_effect_val)
-                    win32clipboard.SetClipboardData(win32con.CF_HDROP, total_bytes)
-                    return True
-                except Exception:
-                    time.sleep(0.05)
-                finally:
-                    try:
-                        win32clipboard.CloseClipboard()
-                    except Exception:
-                        pass
-            return False
-
-        # Fallback ctypes
         drop_effect_fmt = cls.user32.RegisterClipboardFormatW("Preferred DropEffect")
-        for _ in range(max_retries):
-            if cls.user32.OpenClipboard(None):
-                try:
-                    cls.user32.EmptyClipboard()
-                    h_effect = cls.kernel32.GlobalAlloc(cls.GHND, 4)
-                    if h_effect:
-                        p_effect = cls.kernel32.GlobalLock(h_effect)
-                        if p_effect:
-                            ctypes.c_uint32.from_address(p_effect).value = 1
-                            cls.kernel32.GlobalUnlock(h_effect)
-                            cls.user32.SetClipboardData(drop_effect_fmt, h_effect)
 
-                    h_mem = cls.kernel32.GlobalAlloc(cls.GHND, total_len)
-                    if h_mem:
-                        p_mem = cls.kernel32.GlobalLock(h_mem)
-                        if p_mem:
-                            ctypes.memmove(p_mem, total_bytes, total_len)
-                            cls.kernel32.GlobalUnlock(h_mem)
-                            cls.user32.SetClipboardData(cls.CF_HDROP, h_mem)
-                            return True
-                finally:
-                    cls.user32.CloseClipboard()
-            time.sleep(0.05)
+        for _ in range(max_retries):
+            h_mem = cls.kernel32.GlobalAlloc(cls.GHND, total_len)
+            if not h_mem:
+                time.sleep(0.01)
+                continue
+
+            p_mem = cls.kernel32.GlobalLock(h_mem)
+            if p_mem:
+                ctypes.memmove(p_mem, total_bytes, total_len)
+                cls.kernel32.GlobalUnlock(h_mem)
+
+                # 设置 Preferred DropEffect = 1 (DROPEFFECT_COPY)
+                h_effect = cls.kernel32.GlobalAlloc(cls.GHND, 4)
+                if h_effect:
+                    p_effect = cls.kernel32.GlobalLock(h_effect)
+                    if p_effect:
+                        ctypes.c_uint32.from_address(p_effect).value = 1
+                        cls.kernel32.GlobalUnlock(h_effect)
+
+                if cls.user32.OpenClipboard(None):
+                    try:
+                        cls.user32.EmptyClipboard()
+                        if h_effect:
+                            cls.user32.SetClipboardData(drop_effect_fmt, h_effect)
+                        cls.user32.SetClipboardData(cls.CF_HDROP, h_mem)
+                        return True
+                    finally:
+                        cls.user32.CloseClipboard()
+                else:
+                    cls.kernel32.GlobalFree(h_mem)
+                    if h_effect:
+                        cls.kernel32.GlobalFree(h_effect)
+
+            time.sleep(0.015)
         return False
