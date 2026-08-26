@@ -1,40 +1,51 @@
 <template>
-  <div class="category-nav-container">
-    <div class="category-tabs">
+  <div class="category-vertical-strip">
+    <div class="vertical-tabs-list">
+      <!-- 全部 分类标签 -->
       <div
-        class="tab-item"
+        class="v-tab-item"
         :class="{ active: selectedCategoryId === null }"
         @click="$emit('select-category', null)"
+        title="全部话术"
       >
-        <span>全部</span>
-        <span class="badge" v-if="totalReplyCount > 0">{{ totalReplyCount }}</span>
+        <span class="v-tab-text">全部</span>
+        <span class="v-tab-badge" v-if="totalReplyCount > 0">{{ totalReplyCount }}</span>
       </div>
+
+      <!-- 具体分类标签 -->
       <div
         v-for="cat in categories"
         :key="cat.id"
-        class="tab-item"
+        class="v-tab-item"
         :class="{ active: selectedCategoryId === cat.id }"
         @click="$emit('select-category', cat.id)"
         @contextmenu.prevent="openContextMenu($event, cat)"
+        :title="`${cat.name} (${cat.reply_count || 0}条) - 右键编辑/删除`"
       >
-        <span>{{ cat.name }}</span>
-        <span class="badge" v-if="cat.reply_count > 0">{{ cat.reply_count }}</span>
+        <span class="v-tab-text">{{ cat.name }}</span>
+        <span class="v-tab-badge" v-if="cat.reply_count > 0">{{ cat.reply_count }}</span>
       </div>
     </div>
-    <button class="add-tab-btn" @click="$emit('add-category')" title="新增分类">
-      <Plus :size="14" />
-    </button>
+
+    <!-- 底部添加分类按钮 -->
+    <div class="strip-footer">
+      <button class="add-cat-btn" @click="$emit('add-category')" title="新增分类">
+        <Plus :size="15" />
+      </button>
+    </div>
 
     <!-- 分类右键菜单 -->
-    <div
-      v-if="contextMenu.visible"
-      class="context-menu"
-      :style="{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }"
-      @click.stop
-    >
-      <div class="menu-item" @click="handleEditCategory">重命名/编辑</div>
-      <div class="menu-item delete" @click="handleDeleteCategory">删除分类</div>
-    </div>
+    <Teleport to="body">
+      <div
+        v-if="contextMenu.visible"
+        class="context-menu"
+        :style="{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }"
+        @click.stop
+      >
+        <div class="menu-item" @click="handleEditCategory">重命名/编辑</div>
+        <div class="menu-item delete" @click="handleDeleteCategory">删除分类</div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -69,8 +80,8 @@ const contextMenu = ref({
 function openContextMenu(event, category) {
   contextMenu.value = {
     visible: true,
-    x: Math.min(event.clientX, window.innerWidth - 130),
-    y: event.clientY,
+    x: Math.min(event.clientX - 100, window.innerWidth - 130),
+    y: Math.min(event.clientY, window.innerHeight - 100),
     category
   }
 }
@@ -100,73 +111,94 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.category-nav-container {
-  display: flex;
-  align-items: center;
+.category-vertical-strip {
+  width: 38px;
   background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
-  padding: 4px 8px;
-  position: relative;
-}
-.category-tabs {
+  border-left: 1px solid var(--border-color);
   display: flex;
-  align-items: center;
-  gap: 4px;
-  overflow-x: auto;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  user-select: none;
+  height: 100%;
+}
+.vertical-tabs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 0;
   flex: 1;
-  padding-bottom: 2px;
 }
-.category-tabs::-webkit-scrollbar {
-  height: 2px;
+.vertical-tabs-list::-webkit-scrollbar {
+  width: 0px;
 }
-.tab-item {
+.v-tab-item {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  border-radius: 6px;
+  justify-content: center;
+  padding: 8px 2px;
   cursor: pointer;
-  white-space: nowrap;
+  position: relative;
   transition: all 0.15s ease;
+  border-right: 2px solid transparent;
+  color: var(--text-secondary);
+  min-height: 48px;
 }
-.tab-item:hover {
+.v-tab-item:hover {
   background: var(--border-color);
   color: var(--text-primary);
 }
-.tab-item.active {
-  background: var(--accent-light);
+.v-tab-item.active {
+  background: var(--bg-card);
   color: var(--accent-color);
   font-weight: 600;
+  border-right: 2px solid var(--accent-color);
 }
-.badge {
-  font-size: 11px;
-  padding: 1px 5px;
-  border-radius: 10px;
+.v-tab-text {
+  writing-mode: vertical-rl;
+  letter-spacing: 2px;
+  font-size: 11.5px;
+  line-height: 1.2;
+  text-orientation: mixed;
+  margin-bottom: 3px;
+}
+.v-tab-badge {
+  font-size: 9.5px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 8px;
   background: rgba(148, 163, 184, 0.2);
   color: inherit;
 }
-.tab-item.active .badge {
+.v-tab-item.active .v-tab-badge {
   background: var(--accent-color);
   color: white;
 }
-.add-tab-btn {
+.strip-footer {
+  padding: 6px 4px;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid var(--border-color);
+}
+.add-cat-btn {
   background: transparent;
   border: none;
   color: var(--text-secondary);
-  padding: 5px 6px;
-  border-radius: 6px;
   cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  transition: all 0.15s;
 }
-.add-tab-btn:hover {
+.add-cat-btn:hover {
   background: var(--border-color);
-  color: var(--text-primary);
+  color: var(--accent-color);
 }
 .context-menu {
   position: fixed;

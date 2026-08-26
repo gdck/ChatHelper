@@ -1,7 +1,7 @@
 <template>
   <div class="card-list-container">
     <div v-if="replies.length === 0" class="empty-state">
-      <Inbox :size="36" class="empty-icon" />
+      <Inbox :size="32" class="empty-icon" />
       <p class="empty-text">暂无话术内容</p>
       <button class="empty-add-btn" @click="$emit('create-reply')">立即添加</button>
     </div>
@@ -37,7 +37,15 @@ defineEmits(['send-reply', 'edit-reply', 'delete-reply', 'create-reply', 'open-m
 .card-list-container {
   flex: 1;
   overflow-y: auto;
-  padding: 10px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+}
+.card-list-container::-webkit-scrollbar {
+  width: 4px;
+}
+.card-list-container::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
 }
 .card-list {
   display: flex;
@@ -48,23 +56,23 @@ defineEmits(['send-reply', 'edit-reply', 'delete-reply', 'create-reply', 'open-m
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 260px;
+  height: 220px;
   color: var(--text-secondary);
 }
 .empty-icon {
-  margin-bottom: 10px;
-  opacity: 0.5;
+  margin-bottom: 8px;
+  opacity: 0.45;
 }
 .empty-text {
-  font-size: 13px;
-  margin-bottom: 12px;
+  font-size: 12.5px;
+  margin-bottom: 10px;
 }
 .empty-add-btn {
   background: var(--accent-color);
   color: white;
   border: none;
-  padding: 6px 14px;
-  border-radius: 6px;
+  padding: 5px 12px;
+  border-radius: 5px;
   font-size: 12px;
   cursor: pointer;
 }

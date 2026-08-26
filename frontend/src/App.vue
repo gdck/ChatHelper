@@ -17,29 +17,32 @@
         @toggle-collapse="handleToggleCollapse"
       />
 
-      <CategoryNav
-        :categories="categories"
-        :selected-category-id="selectedCategoryId"
-        @select-category="handleSelectCategory"
-        @add-category="handleOpenAddCategoryModal"
-        @edit-category="handleOpenEditCategoryModal"
-        @delete-category="handleOpenDeleteCategoryConfirm"
-      />
-
       <SearchBar
         ref="searchBarRef"
         v-model="searchKeyword"
         @create-reply="handleOpenCreateModal"
       />
 
-      <ReplyCardList
-        :replies="replies"
-        @send-reply="handleSendReply"
-        @edit-reply="handleOpenEditModal"
-        @delete-reply="handleOpenDeleteReplyConfirm"
-        @create-reply="handleOpenCreateModal"
-        @open-menu="handleOpenFloatingMenu"
-      />
+      <!-- 主工作区：左侧高密度紧凑话术列表 + 右侧竖向分类导航条 -->
+      <div class="main-body-layout">
+        <ReplyCardList
+          :replies="replies"
+          @send-reply="handleSendReply"
+          @edit-reply="handleOpenEditModal"
+          @delete-reply="handleOpenDeleteReplyConfirm"
+          @create-reply="handleOpenCreateModal"
+          @open-menu="handleOpenFloatingMenu"
+        />
+
+        <CategoryNav
+          :categories="categories"
+          :selected-category-id="selectedCategoryId"
+          @select-category="handleSelectCategory"
+          @add-category="handleOpenAddCategoryModal"
+          @edit-category="handleOpenEditCategoryModal"
+          @delete-category="handleOpenDeleteCategoryConfirm"
+        />
+      </div>
 
       <!-- 全局悬浮动作菜单（智能防遮挡） -->
       <FloatingMenu
@@ -419,5 +422,12 @@ onMounted(async () => {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   box-shadow: none !important;
+}
+
+.main-body-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
 }
 </style>
