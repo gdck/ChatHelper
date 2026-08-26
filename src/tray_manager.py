@@ -6,7 +6,7 @@ class Win32NativeTray:
     """
     纯 Win32 原生托盘图标管理器
     零外部依赖（彻底摆脱 PIL、Pillow、pystray 庞大体积），体积缩减数十兆
-    显式绑定 64 位 Win32 ABI 函数原型，确保菜单项文本清晰正确渲染
+    标准 Win32 64-bit ABI 规范，原生系统级菜单，文本与对比度完美呈现
     """
     WM_USER = 0x0400
     WM_TRAY = WM_USER + 20
@@ -15,6 +15,7 @@ class Win32NativeTray:
     WM_LBUTTONUP = 0x0202
     WM_LBUTTONDBLCLK = 0x0203
     WM_DESTROY = 0x0002
+    WM_NULL = 0x0000
 
     NIM_ADD = 0x00000000
     NIM_MODIFY = 0x00000001
@@ -26,9 +27,9 @@ class Win32NativeTray:
 
     MF_STRING = 0x00000000
     MF_SEPARATOR = 0x00000800
-    TPM_LEFTALIGN = 0x0000
     TPM_RIGHTBUTTON = 0x0002
-    TPM_BOTTOMALIGN = 0x0020
+    TPM_RETURNCMD = 0x0100
+    TPM_NONOTIFY = 0x0080
 
     ID_TOGGLE = 1001
     ID_EXIT = 1002
@@ -37,12 +38,12 @@ class Win32NativeTray:
     shell32 = ctypes.windll.shell32
     gdi32 = ctypes.windll.gdi32
 
-    # 64 位 Win32 函数类型显式声明，杜绝指针截断导致的文本空白
+    # 显式声明 64 位 Win32 函数类型签名，确保字符串指针与返回值零截断
     user32.CreatePopupMenu.restype = wintypes.HMENU
-    user32.AppendMenuW.argtypes = [wintypes.HMENU, wintypes.UINT, ctypes.c_size_t, wintypes.LPCWSTR]
+    user32.AppendMenuW.argtypes = [wintypes.HMENU, wintypes.UINT, ctypes.c_size_t, ctypes.c_wchar_p]
     user32.AppendMenuW.restype = wintypes.BOOL
-    user32.TrackPopupMenuEx.argtypes = [wintypes.HMENU, wintypes.UINT, ctypes.c_int, ctypes.c_int, wintypes.HWND, ctypes.c_void_p]
-    user32.TrackPopupMenuEx.restype = wintypes.BOOL
+    user32.TrackPopupMenu.argtypes = [wintypes.HMENU, wintypes.UINT, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.HWND, ctypes.c_void_p]
+    user32.TrackPopupMenu.restype = wintypes.UINT
     user32.DestroyMenu.argtypes = [wintypes.HMENU]
     user32.DestroyMenu.restype = wintypes.BOOL
     user32.SetForegroundWindow.argtypes = [wintypes.HWND]
@@ -165,13 +166,22 @@ class Win32NativeTray:
         pt = wintypes.POINT()
         self.user32.GetCursorPos(ctypes.byref(pt))
         self.user32.SetForegroundWindow(self.hwnd)
-        self.user32.TrackPopupMenuEx(
+        
+        # 使用 TPM_RETURNCMD | TPM_NONOTIFY 直接同步返回用户选中的菜单命令 ID
+        cmd = self.user32.TrackPopupMenu(
             h_menu,
-            self.TPM_LEFTALIGN | self.TPM_BOTTOMALIGN | self.TPM_RIGHTBUTTON,
-            pt.x, pt.y, self.hwnd, None
+            self.TPM_RIGHTBUTTON | self.TPM_RETURNCMD | self.TPM_NONOTIFY,
+            pt.x, pt.y, 0, self.hwnd, None
         )
-        self.user32.PostMessageW(self.hwnd, 0, 0, 0)
+        self.user32.PostMessageW(self.hwnd, self.WM_NULL, 0, 0)
         self.user32.DestroyMenu(h_menu)
+
+        if cmd == self.ID_TOGGLE:
+            if callable(self.on_toggle):
+                self.on_toggle()
+        elif cmd == self.ID_EXIT:
+            if callable(self.on_exit):
+                self.on_exit()
 
     def _wnd_proc(self, hwnd, msg, wparam, lparam):
         if msg == self.WM_TRAY:
@@ -180,15 +190,6 @@ class Win32NativeTray:
                     self.on_toggle()
             elif lparam == self.WM_RBUTTONUP:
                 self._show_menu()
-            return 0
-        elif msg == self.WM_COMMAND:
-            cmd = wparam & 0xFFFF
-            if cmd == self.ID_TOGGLE:
-                if callable(self.on_toggle):
-                    self.on_toggle()
-            elif cmd == self.ID_EXIT:
-                if callable(self.on_exit):
-                    self.on_exit()
             return 0
         elif msg == self.WM_DESTROY:
             self.stop()
