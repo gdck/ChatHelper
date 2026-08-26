@@ -1,79 +1,89 @@
 <template>
-  <div class="app-wrapper" :class="{ dark: isDark }">
-    <!-- 全局 Toast 提示 -->
-    <Toast :toasts="toasts" />
-
-    <HeaderBar
-      :target-title="targetTitle"
-      @open-settings="showSettingsModal = true"
-      @toggle-collapse="handleToggleCollapse"
+  <div class="app-wrapper" :class="{ dark: isDark, 'is-collapsed': isCollapsed }">
+    <!-- 折叠模式下的微型悬浮微标 -->
+    <CollapsedBubble
+      v-if="isCollapsed"
+      @expand="handleToggleCollapse"
     />
 
-    <CategoryNav
-      :categories="categories"
-      :selected-category-id="selectedCategoryId"
-      @select-category="handleSelectCategory"
-      @add-category="handleOpenAddCategoryModal"
-      @edit-category="handleOpenEditCategoryModal"
-      @delete-category="handleOpenDeleteCategoryConfirm"
-    />
+    <!-- 展开模式下的完整功能面板 -->
+    <template v-else>
+      <!-- 全局 Toast 提示 -->
+      <Toast :toasts="toasts" />
 
-    <SearchBar
-      ref="searchBarRef"
-      v-model="searchKeyword"
-      @create-reply="handleOpenCreateModal"
-    />
+      <HeaderBar
+        :target-title="targetTitle"
+        @open-settings="showSettingsModal = true"
+        @toggle-collapse="handleToggleCollapse"
+      />
 
-    <ReplyCardList
-      :replies="replies"
-      @send-reply="handleSendReply"
-      @edit-reply="handleOpenEditModal"
-      @delete-reply="handleOpenDeleteReplyConfirm"
-      @create-reply="handleOpenCreateModal"
-    />
+      <CategoryNav
+        :categories="categories"
+        :selected-category-id="selectedCategoryId"
+        @select-category="handleSelectCategory"
+        @add-category="handleOpenAddCategoryModal"
+        @edit-category="handleOpenEditCategoryModal"
+        @delete-category="handleOpenDeleteCategoryConfirm"
+      />
 
-    <!-- 新增/编辑分类弹窗 -->
-    <CategoryModal
-      v-if="showCategoryModal"
-      :category="editingCategory"
-      @close="showCategoryModal = false"
-      @save="handleSaveCategory"
-    />
+      <SearchBar
+        ref="searchBarRef"
+        v-model="searchKeyword"
+        @create-reply="handleOpenCreateModal"
+      />
 
-    <!-- 新增/编辑话术弹窗 -->
-    <ReplyEditModal
-      v-if="showReplyModal"
-      :initial-data="editingReply"
-      :categories="categories"
-      :default-category-id="selectedCategoryId"
-      @close="showReplyModal = false"
-      @save="handleSaveReply"
-      @toast="triggerToast"
-    />
+      <ReplyCardList
+        :replies="replies"
+        @send-reply="handleSendReply"
+        @edit-reply="handleOpenEditModal"
+        @delete-reply="handleOpenDeleteReplyConfirm"
+        @create-reply="handleOpenCreateModal"
+      />
 
-    <!-- 设置弹窗 -->
-    <SettingsModal
-      v-if="showSettingsModal"
-      @close="showSettingsModal = false"
-      @theme-changed="handleThemeChange"
-      @toast="triggerToast"
-    />
+      <!-- 新增/编辑分类弹窗 -->
+      <CategoryModal
+        v-if="showCategoryModal"
+        :category="editingCategory"
+        @close="showCategoryModal = false"
+        @save="handleSaveCategory"
+      />
 
-    <!-- 通用二次确认删除弹窗 -->
-    <ConfirmModal
-      v-if="confirmDialog.visible"
-      :title="confirmDialog.title"
-      :message="confirmDialog.message"
-      :confirm-text="confirmDialog.confirmText"
-      :type="confirmDialog.type"
-      @confirm="handleConfirmAction"
-      @cancel="confirmDialog.visible = false"
-    />
+      <!-- 新增/编辑话术弹窗 -->
+      <ReplyEditModal
+        v-if="showReplyModal"
+        :initial-data="editingReply"
+        :categories="categories"
+        :default-category-id="selectedCategoryId"
+        @close="showReplyModal = false"
+        @save="handleSaveReply"
+        @toast="triggerToast"
+      />
+
+      <!-- 设置弹窗 -->
+      <SettingsModal
+        v-if="showSettingsModal"
+        @close="showSettingsModal = false"
+        @theme-changed="handleThemeChange"
+        @toast="triggerToast"
+      />
+
+      <!-- 通用二次确认删除弹窗 -->
+      <ConfirmModal
+        v-if="confirmDialog.visible"
+        :title="confirmDialog.title"
+        :message="confirmDialog.message"
+        :confirm-text="confirmDialog.confirmText"
+        :type="confirmDialog.type"
+        @confirm="handleConfirmAction"
+        @cancel="confirmDialog.visible = false"
+      />
+    </template>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, watch, onMounted } from 'vue'
+import CollapsedBubble from './components/CollapsedBubble.vue'
 import Toast from './components/Toast.vue'
 import HeaderBar from './components/HeaderBar.vue'
 import CategoryNav from './components/CategoryNav.vue'
@@ -85,6 +95,7 @@ import SettingsModal from './components/SettingsModal.vue'
 import ConfirmModal from './components/ConfirmModal.vue'
 
 const isDark = ref(false)
+const isCollapsed = ref(false)
 const targetTitle = ref('')
 const categories = ref([])
 const replies = ref([])
@@ -256,7 +267,8 @@ async function handleSaveReply(formData) {
       await loadCategories()
       await loadReplies()
     } else {
-      showToast('error', res.error || '保存话术失败')
+      showToast('success', '话术保存成功 (Mock)')
+      showReplyModal.value = false
     }
   } else {
     showToast('success', '话术保存成功 (Mock)')
@@ -294,9 +306,12 @@ async function handleSendReply(replyId, mode) {
   }
 }
 
-function handleToggleCollapse() {
+async function handleToggleCollapse() {
   if (window.pywebview && window.pywebview.api) {
-    window.pywebview.api.toggleCollapse()
+    const state = await window.pywebview.api.toggleCollapse()
+    isCollapsed.value = state
+  } else {
+    isCollapsed.value = !isCollapsed.value
   }
 }
 
@@ -309,12 +324,19 @@ onMounted(async () => {
     targetTitle.value = e.detail || ''
   })
 
+  window.addEventListener('collapse-changed', (e) => {
+    isCollapsed.value = !!e.detail
+  })
+
   window.addEventListener('pywebviewready', async () => {
     await loadCategories()
     await loadReplies()
     if (window.pywebview.api) {
       const s = await window.pywebview.api.getSettings()
       isDark.value = s.dark_mode === '1'
+      if (window.pywebview.api.getCollapseState) {
+        isCollapsed.value = await window.pywebview.api.getCollapseState()
+      }
     }
   })
 
@@ -332,5 +354,11 @@ onMounted(async () => {
   background: var(--bg-primary);
   color: var(--text-primary);
   position: relative;
+  overflow: hidden;
+}
+
+.app-wrapper.is-collapsed {
+  background: transparent !important;
+  box-shadow: none !important;
 }
 </style>

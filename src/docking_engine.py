@@ -50,12 +50,13 @@ class DockingEngine:
     def set_helper_hwnd(self, hwnd: int) -> None:
         self.helper_hwnd = hwnd
 
-    def calculate_dock_pos(self, rect: tuple[int, int, int, int], collapsed: bool, sidebar_width: int = 408, icon_size: int = 32) -> tuple[int, int, int, int]:
+    def calculate_dock_pos(self, rect: tuple[int, int, int, int], collapsed: bool, sidebar_width: int = 408, icon_size: int = 46) -> tuple[int, int, int, int]:
         left, top, right, bottom = rect
         width = right - left
         height = bottom - top
         if collapsed:
-            return (right - icon_size, top - icon_size, icon_size, icon_size)
+            # 吸附在宿主窗口右上侧边栏位置（不遮挡右上角关闭/最小化按钮）
+            return (right, top + 80, icon_size, icon_size)
         else:
             return (right, top, sidebar_width, height)
 

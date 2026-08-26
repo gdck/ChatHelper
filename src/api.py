@@ -88,7 +88,16 @@ class JsApi:
             return []
 
     def toggleCollapse(self) -> bool:
-        return self.dock.toggle_collapse()
+        state = self.dock.toggle_collapse()
+        if self._window:
+            try:
+                self._window.evaluate_js(f"window.dispatchEvent(new CustomEvent('collapse-changed', {{ detail: {str(state).lower()} }}))")
+            except Exception:
+                pass
+        return state
+
+    def getCollapseState(self) -> bool:
+        return self.dock.collapsed
 
     def getSettings(self) -> dict[str, str]:
         return {
