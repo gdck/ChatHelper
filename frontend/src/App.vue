@@ -369,6 +369,9 @@ onMounted(async () => {
       if (window.pywebview.api.getCollapseState) {
         isCollapsed.value = await window.pywebview.api.getCollapseState()
       }
+      if (window.pywebview.api.getTargetTitle) {
+        targetTitle.value = await window.pywebview.api.getTargetTitle()
+      }
     }
   })
 

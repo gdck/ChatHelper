@@ -114,6 +114,9 @@ class JsApi:
     def getCollapseState(self) -> bool:
         return self.dock.collapsed
 
+    def getTargetTitle(self) -> str:
+        return self.dock.current_target_title or ""
+
     def getSettings(self) -> dict[str, str]:
         return {
             "dark_mode": self.db.get_setting("dark_mode", "0"),

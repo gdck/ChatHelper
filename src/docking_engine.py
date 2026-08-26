@@ -50,6 +50,7 @@ class DockingEngine:
         self.sidebar_width = sidebar_width
         self.helper_hwnd: int = 0
         self.current_target_hwnd: int = 0
+        self.current_target_title: str = ""
         self.collapsed: bool = False
         self.running: bool = False
         self._thread: threading.Thread | None = None
@@ -169,9 +170,11 @@ class DockingEngine:
 
         info = self._get_window_info(target_hwnd)
         if info and self.is_supported_target(info):
-            if target_hwnd != self.current_target_hwnd:
+            display_title = info.title if info.title else f"{info.process_name}"
+            # 实时检测：无论是窗口句柄切换，还是在同一微信窗口内切换会话导致标题变化，均实时通知前端
+            if target_hwnd != self.current_target_hwnd or display_title != self.current_target_title:
                 self.current_target_hwnd = target_hwnd
-                display_title = info.title if info.title else f"{info.process_name}"
+                self.current_target_title = display_title
                 if callable(self.on_target_changed):
                     self.on_target_changed(display_title)
 
