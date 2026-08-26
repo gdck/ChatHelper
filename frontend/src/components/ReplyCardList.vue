@@ -13,6 +13,7 @@
         @send="(id, mode) => $emit('send-reply', id, mode)"
         @edit="(r) => $emit('edit-reply', r)"
         @delete="(id) => $emit('delete-reply', id)"
+        @open-menu="(rect, r) => $emit('open-menu', rect, r)"
       />
     </div>
   </div>
@@ -29,7 +30,7 @@ defineProps({
   }
 })
 
-defineEmits(['send-reply', 'edit-reply', 'delete-reply', 'create-reply'])
+defineEmits(['send-reply', 'edit-reply', 'delete-reply', 'create-reply', 'open-menu'])
 </script>
 
 <style scoped>

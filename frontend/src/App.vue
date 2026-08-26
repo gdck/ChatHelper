@@ -38,6 +38,17 @@
         @edit-reply="handleOpenEditModal"
         @delete-reply="handleOpenDeleteReplyConfirm"
         @create-reply="handleOpenCreateModal"
+        @open-menu="handleOpenFloatingMenu"
+      />
+
+      <!-- 全局悬浮动作菜单（智能防遮挡） -->
+      <FloatingMenu
+        :visible="floatingMenu.visible"
+        :anchor-rect="floatingMenu.anchorRect"
+        :reply="floatingMenu.reply"
+        @close="floatingMenu.visible = false"
+        @select-mode="handleSendReply"
+        @action="handleFloatingMenuAction"
       />
 
       <!-- 新增/编辑分类弹窗 -->
@@ -89,6 +100,7 @@ import HeaderBar from './components/HeaderBar.vue'
 import CategoryNav from './components/CategoryNav.vue'
 import SearchBar from './components/SearchBar.vue'
 import ReplyCardList from './components/ReplyCardList.vue'
+import FloatingMenu from './components/FloatingMenu.vue'
 import CategoryModal from './components/CategoryModal.vue'
 import ReplyEditModal from './components/ReplyEditModal.vue'
 import SettingsModal from './components/SettingsModal.vue'
@@ -102,6 +114,27 @@ const replies = ref([])
 const selectedCategoryId = ref(null)
 const searchKeyword = ref('')
 const searchBarRef = ref(null)
+
+// 悬浮菜单状态
+const floatingMenu = reactive({
+  visible: false,
+  anchorRect: null,
+  reply: null
+})
+
+function handleOpenFloatingMenu(rect, reply) {
+  floatingMenu.anchorRect = rect
+  floatingMenu.reply = reply
+  floatingMenu.visible = true
+}
+
+function handleFloatingMenuAction(action, reply) {
+  if (action === 'edit') {
+    handleOpenEditModal(reply)
+  } else if (action === 'delete') {
+    handleOpenDeleteReplyConfirm(reply.id)
+  }
+}
 
 // 弹窗状态
 const showCategoryModal = ref(false)
@@ -159,9 +192,9 @@ async function loadCategories() {
     categories.value = await window.pywebview.api.getCategories()
   } else {
     categories.value = [
-      { id: 1, name: '常见问答', sort_order: 1, reply_count: 2 },
+      { id: 1, name: '常用问候', sort_order: 1, reply_count: 1 },
       { id: 2, name: '售后服务', sort_order: 2, reply_count: 1 },
-      { id: 3, name: '报价资料', sort_order: 3, reply_count: 1 }
+      { id: 3, name: '产品与报价', sort_order: 3, reply_count: 1 }
     ]
   }
 }
@@ -186,11 +219,11 @@ async function loadReplies() {
       {
         id: 2,
         category_id: 2,
-        title: '退换货说明',
+        title: '7天退换货政策',
         content: '亲，支持7天无理由退换货，请保持原包装完整并寄回指定网点。',
         attachments: [{ name: '退换货指引.pdf', path: 'C:/docs/guide.pdf' }],
-        tags: ['售后'],
-        use_count: 5
+        tags: ['售后', '政策'],
+        use_count: 8
       }
     ]
   }
@@ -267,8 +300,7 @@ async function handleSaveReply(formData) {
       await loadCategories()
       await loadReplies()
     } else {
-      showToast('success', '话术保存成功 (Mock)')
-      showReplyModal.value = false
+      showToast('error', res.error || '保存话术失败')
     }
   } else {
     showToast('success', '话术保存成功 (Mock)')

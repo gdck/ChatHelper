@@ -24,56 +24,16 @@
           <Send :size="12" />
           <span>发送</span>
         </button>
-        <button class="more-btn" @click.stop="toggleMenu" title="更多发送模式与操作">
+        <button class="more-btn" @click.stop="handleOpenMenu($event)" title="更多发送模式与操作">
           <MoreVertical :size="14" />
         </button>
-        
-        <Transition name="dropdown">
-          <div class="dropdown-menu" v-if="showMenu" @click.stop>
-            <div class="menu-item" @click="emitMode('typewriter')">
-              <Sparkles :size="13" class="menu-icon" />
-              <span>逐字慢发 (打字机)</span>
-            </div>
-            <div class="menu-item" @click="emitMode('repeat3')">
-              <Repeat :size="13" class="menu-icon" />
-              <span>连发 3 次</span>
-            </div>
-            <div class="menu-item" @click="emitMode('reverse')">
-              <ArrowLeftRight :size="13" class="menu-icon" />
-              <span>倒序发送</span>
-            </div>
-            <div class="menu-item" @click="emitMode('paste_only')">
-              <ClipboardCopy :size="13" class="menu-icon" />
-              <span>仅粘贴不回车</span>
-            </div>
-            <hr class="menu-divider" />
-            <div class="menu-item" @click="emitAction('edit')">
-              <Edit3 :size="13" class="menu-icon" />
-              <span>编辑话术</span>
-            </div>
-            <div class="menu-item delete" @click="emitAction('delete')">
-              <Trash2 :size="13" class="menu-icon" />
-              <span>删除话术</span>
-            </div>
-          </div>
-        </Transition>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import {
-  Send,
-  MoreVertical,
-  Sparkles,
-  Repeat,
-  ArrowLeftRight,
-  ClipboardCopy,
-  Edit3,
-  Trash2
-} from 'lucide-vue-next'
+import { Send, MoreVertical } from 'lucide-vue-next'
 
 const props = defineProps({
   reply: {
@@ -82,34 +42,12 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['send', 'edit', 'delete'])
-const showMenu = ref(false)
+const emit = defineEmits(['send', 'edit', 'delete', 'open-menu'])
 
-function toggleMenu() {
-  showMenu.value = !showMenu.value
+function handleOpenMenu(event) {
+  const rect = event.currentTarget.getBoundingClientRect()
+  emit('open-menu', rect, props.reply)
 }
-
-function emitMode(mode) {
-  showMenu.value = false
-  emit('send', props.reply.id, mode)
-}
-
-function emitAction(type) {
-  showMenu.value = false
-  if (type === 'edit') emit('edit', props.reply)
-  if (type === 'delete') emit('delete', props.reply.id)
-}
-
-function handleGlobalClick() {
-  showMenu.value = false
-}
-
-onMounted(() => {
-  window.addEventListener('click', handleGlobalClick)
-})
-onUnmounted(() => {
-  window.removeEventListener('click', handleGlobalClick)
-})
 </script>
 
 <style scoped>
@@ -202,8 +140,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 5px;
-  position: relative;
-  margin-left: auto; /* 关键：始终右对齐，防止下拉菜单偏出屏幕左侧 */
+  margin-left: auto;
 }
 .send-btn {
   display: flex;
@@ -236,64 +173,5 @@ onUnmounted(() => {
 .more-btn:hover {
   background: var(--border-color);
   color: var(--text-primary);
-}
-.dropdown-menu {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 6px);
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-  padding: 4px;
-  z-index: 300;
-  width: 155px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  font-size: 12px;
-  color: var(--text-primary);
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.menu-icon {
-  opacity: 0.7;
-  flex-shrink: 0;
-}
-.menu-item:hover {
-  background: var(--accent-light);
-  color: var(--accent-color);
-}
-.menu-item:hover .menu-icon {
-  opacity: 1;
-}
-.menu-divider {
-  border: none;
-  border-top: 1px solid var(--border-color);
-  margin: 4px 0;
-}
-.menu-item.delete {
-  color: #ef4444;
-}
-.menu-item.delete:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-}
-
-/* 动效 */
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(6px) scale(0.96);
 }
 </style>

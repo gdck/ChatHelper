@@ -61,7 +61,8 @@ def create_app():
         height=700,
         frameless=True,
         easy_drag=False,
-        on_top=True
+        on_top=True,
+        transparent=True
     )
     api.set_window(window)
 
