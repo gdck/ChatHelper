@@ -1,4 +1,5 @@
 import webview
+import threading
 from typing import Any
 from src.database import DatabaseManager
 from src.docking_engine import DockingEngine
@@ -68,15 +69,25 @@ class JsApi:
         if not target_hwnd:
             return {"success": False, "error": "未检测到已激活的目标聊天窗口"}
 
-        ok = self.send.send_payload(
-            target_hwnd=target_hwnd,
-            text=target_reply["content"],
-            attachments=target_reply.get("attachments", []),
-            mode=mode
-        )
-        if ok:
-            self.db.increment_use_count(reply_id)
-        return {"success": ok}
+        content = target_reply.get("content", "")
+        attachments = target_reply.get("attachments", [])
+
+        # 在异步工作线程中执行发送，避免阻塞 Web 界面主循环
+        def worker():
+            try:
+                ok = self.send.send_payload(
+                    target_hwnd=target_hwnd,
+                    text=content,
+                    attachments=attachments,
+                    mode=mode
+                )
+                if ok:
+                    self.db.increment_use_count(reply_id)
+            except Exception as e:
+                print(f"send error: {e}")
+
+        threading.Thread(target=worker, daemon=True).start()
+        return {"success": True}
 
     def selectFiles(self) -> list[str]:
         if not self._window:
