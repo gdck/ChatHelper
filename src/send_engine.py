@@ -1,5 +1,6 @@
 import time
 import datetime
+import os
 import ctypes
 from src.win32_clipboard import Win32Clipboard
 
@@ -53,14 +54,14 @@ class SendEngine:
         except Exception:
             return False
 
-    def _simulate_paste(self, delay_ms: int = 100) -> None:
+    def _simulate_paste(self, delay_ms: int = 120) -> None:
         time.sleep(delay_ms / 1000.0)
         self.user32.keybd_event(self.VK_CONTROL, 0, 0, 0)
         self.user32.keybd_event(self.VK_V, 0, 0, 0)
         self.user32.keybd_event(self.VK_V, 0, self.KEYEVENTF_KEYUP, 0)
         self.user32.keybd_event(self.VK_CONTROL, 0, self.KEYEVENTF_KEYUP, 0)
 
-    def _simulate_enter(self, delay_ms: int = 100) -> None:
+    def _simulate_enter(self, delay_ms: int = 120) -> None:
         time.sleep(delay_ms / 1000.0)
         self.user32.keybd_event(self.VK_RETURN, 0, 0, 0)
         self.user32.keybd_event(self.VK_RETURN, 0, self.KEYEVENTF_KEYUP, 0)
@@ -78,9 +79,20 @@ class SendEngine:
 
         self._activate_window(target_hwnd)
 
+        # 提取存在的有效本地附件路径
+        valid_files = []
+        for item in (attachments or []):
+            path = item.get("path") if isinstance(item, dict) else str(item)
+            if path and os.path.exists(path):
+                valid_files.append(os.path.abspath(path))
+
         if mode == "paste_only":
             if interpolated_text:
                 Win32Clipboard.set_text(interpolated_text)
+                self._simulate_paste(p_delay)
+            if valid_files:
+                time.sleep(0.15)
+                Win32Clipboard.set_files(valid_files)
                 self._simulate_paste(p_delay)
             return True
 
@@ -94,6 +106,10 @@ class SendEngine:
                     self._simulate_paste(50)
                     self._simulate_enter(50)
                     time.sleep(c_delay / 1000.0)
+            if valid_files:
+                Win32Clipboard.set_files(valid_files)
+                self._simulate_paste(200)
+                self._simulate_enter(500)
             return True
 
         repeat_count = 3 if mode == "repeat3" else 1
@@ -102,13 +118,15 @@ class SendEngine:
                 Win32Clipboard.set_text(interpolated_text)
                 self._simulate_paste(p_delay)
                 self._simulate_enter(e_delay)
+                time.sleep(0.2)
 
-            # 顺序发送多附件
-            for item in attachments:
-                path = item.get("path") if isinstance(item, dict) else str(item)
-                if path and os.path.exists(path):
-                    Win32Clipboard.set_files([path])
-                    self._simulate_paste(p_delay)
-                    self._simulate_enter(e_delay)
-                    time.sleep(0.15)
+            # 发送多附件（支持批量注入与可靠延时）
+            if valid_files:
+                Win32Clipboard.set_files(valid_files)
+                # 微信粘贴文件前置延时
+                self._simulate_paste(max(p_delay, 200))
+                # 关键：微信客户端加载文件需要生成缩略图与校验，回车延时需充足（500ms）
+                self._simulate_enter(max(e_delay, 500))
+                time.sleep(0.3)
+
         return True

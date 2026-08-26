@@ -2,6 +2,7 @@ import ctypes
 from ctypes import wintypes
 import time
 import os
+import struct
 
 try:
     import win32clipboard
@@ -49,6 +50,9 @@ class Win32Clipboard:
 
     user32.CloseClipboard.argtypes = []
     user32.CloseClipboard.restype = wintypes.BOOL
+
+    user32.RegisterClipboardFormatW.argtypes = [wintypes.LPCWSTR]
+    user32.RegisterClipboardFormatW.restype = wintypes.UINT
 
     @classmethod
     def set_text(cls, text: str, max_retries: int = 5) -> bool:
@@ -104,10 +108,13 @@ class Win32Clipboard:
         total_len = len(total_bytes)
 
         if HAS_PYWIN32:
+            drop_effect_fmt = win32clipboard.RegisterClipboardFormat("Preferred DropEffect")
+            drop_effect_val = struct.pack("I", 1)  # DROPEFFECT_COPY = 1
             for _ in range(max_retries):
                 try:
                     win32clipboard.OpenClipboard()
                     win32clipboard.EmptyClipboard()
+                    win32clipboard.SetClipboardData(drop_effect_fmt, drop_effect_val)
                     win32clipboard.SetClipboardData(win32con.CF_HDROP, total_bytes)
                     return True
                 except Exception:
@@ -120,10 +127,19 @@ class Win32Clipboard:
             return False
 
         # Fallback ctypes
+        drop_effect_fmt = cls.user32.RegisterClipboardFormatW("Preferred DropEffect")
         for _ in range(max_retries):
             if cls.user32.OpenClipboard(None):
                 try:
                     cls.user32.EmptyClipboard()
+                    h_effect = cls.kernel32.GlobalAlloc(cls.GHND, 4)
+                    if h_effect:
+                        p_effect = cls.kernel32.GlobalLock(h_effect)
+                        if p_effect:
+                            ctypes.c_uint32.from_address(p_effect).value = 1
+                            cls.kernel32.GlobalUnlock(h_effect)
+                            cls.user32.SetClipboardData(drop_effect_fmt, h_effect)
+
                     h_mem = cls.kernel32.GlobalAlloc(cls.GHND, total_len)
                     if h_mem:
                         p_mem = cls.kernel32.GlobalLock(h_mem)
