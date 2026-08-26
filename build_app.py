@@ -29,14 +29,18 @@ def build():
             except Exception as e:
                 print(f"提示: 清理 {folder} 遇到异常: {e}")
 
-    print("[4/4] 运行 PyInstaller 生成单文件独立可执行程序 (--onefile)...")
+    print("[4/4] 运行 PyInstaller 生成单文件独立可执行程序 (--onefile --uac-admin)...")
     
-    # 排除庞大的无用依赖（PyQt6 488MB、numpy 26MB、cryptography 等）
+    # 极简依赖剪裁：彻底移除 sqlite3、Pillow、pystray、Qt、科学计算等庞大模块
     exclude_modules = [
-        "PyQt6", "PyQt5", "PySide6", "PySide2",
-        "numpy", "scipy", "pandas", "matplotlib",
-        "cryptography", "tkinter", "pytest", "unittest",
-        "IPython", "jupyter", "torch", "setuptools"
+        "sqlite3", "_sqlite3",
+        "PIL", "Pillow", "pystray",
+        "PyQt6", "PyQt5", "PySide6", "PySide2", "qtpy",
+        "numpy", "scipy", "pandas", "matplotlib", "pygments", "jinja2", "mako",
+        "tkinter", "_tkinter", "tcl", "tk",
+        "unittest", "pytest", "pydoc", "doctest", "difflib", "test",
+        "xmlrpc", "curses", "email", "http",
+        "cryptography", "IPython", "jupyter", "torch"
     ]
     
     cmd = [
@@ -45,11 +49,9 @@ def build():
         "PyInstaller",
         "--noconsole",
         "--onefile",
+        "--uac-admin", # 默认以管理员权限运行（UAC 盾牌提权标记）
         "--name=ChatHelper",
         f"--add-data={dist_dir};frontend/dist",
-        "--hidden-import=win32clipboard",
-        "--hidden-import=win32con",
-        "--hidden-import=pystray",
         "--hidden-import=pythonnet",
         "--hidden-import=clr_loader",
         "--hidden-import=webview.platforms.winforms",
@@ -67,7 +69,7 @@ def build():
     size_mb = os.path.getsize(exe_path) / (1024 * 1024) if os.path.exists(exe_path) else 0
 
     print("==========================================")
-    print(f"[SUCCESS] 单文件打包完成！")
+    print(f"[SUCCESS] 超精简单文件（管理员权限）打包完成！")
     print(f"产物路径: {exe_path}")
     print(f"文件大小: {size_mb:.2f} MB")
     print("==========================================")

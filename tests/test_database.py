@@ -1,19 +1,17 @@
 import os
 import tempfile
 import pytest
-from src.database import DatabaseManager
+from src.storage import JsonStorageManager
 
 @pytest.fixture
 def db():
     temp_dir = tempfile.mkdtemp()
-    db_path = os.path.join(temp_dir, "test_chat.db")
-    manager = DatabaseManager(db_path)
-    manager.init_db()
+    json_path = os.path.join(temp_dir, "data.json")
+    manager = JsonStorageManager(json_path)
     yield manager
-    manager.close()
-    if os.path.exists(db_path):
+    if os.path.exists(json_path):
         try:
-            os.remove(db_path)
+            os.remove(json_path)
         except OSError:
             pass
 
@@ -46,7 +44,8 @@ def test_reply_crud_and_search(db):
 
     # 验证分类关联与统计
     categories = db.get_categories()
-    assert categories[0]["reply_count"] == 1
+    after_cat = next(c for c in categories if c["id"] == cat_id)
+    assert after_cat["reply_count"] == 1
 
     # 关键字搜索
     results = db.get_replies(category_id=cat_id, keyword="退款流程")
@@ -70,7 +69,7 @@ def test_settings_and_backup(db):
     assert db.get_setting("non_exist", "default_val") == "default_val"
 
     temp_dir = tempfile.mkdtemp()
-    backup_file = os.path.join(temp_dir, "backup.db")
+    backup_file = os.path.join(temp_dir, "backup.json")
     assert db.backup_database(backup_file) is True
     assert os.path.exists(backup_file)
     assert db.restore_database(backup_file) is True

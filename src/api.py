@@ -1,12 +1,12 @@
 import webview
 import threading
 from typing import Any
-from src.database import DatabaseManager
+from src.storage import JsonStorageManager
 from src.docking_engine import DockingEngine
 from src.send_engine import SendEngine
 
 class JsApi:
-    def __init__(self, db: DatabaseManager, dock: DockingEngine, send: SendEngine):
+    def __init__(self, db: JsonStorageManager, dock: DockingEngine, send: SendEngine):
         self.db = db
         self.dock = dock
         self.send = send

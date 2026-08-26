@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import ctypes
 
 # 确保项目根目录在 sys.path 中
@@ -12,7 +13,7 @@ if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
 import webview
-from src.database import DatabaseManager
+from src.storage import JsonStorageManager
 from src.send_engine import SendEngine
 from src.docking_engine import DockingEngine
 from src.api import JsApi
@@ -33,19 +34,12 @@ def create_app():
         ctypes.windll.user32.MessageBoxW(0, "聊天助手已经在运行中！", "提示", 0x40)
         sys.exit(0)
 
-    # 数据库路径：打包后放在 exe 同级目录，源码模式放在项目根目录
-    if getattr(sys, 'frozen', False):
-        db_dir = os.path.dirname(sys.executable)
-    else:
-        db_dir = BASE_DIR
-    db_path = os.path.join(db_dir, "chat_helper.db")
-
-    db = DatabaseManager(db_path)
-    db.init_db()
+    # 存储管理器：%APPDATA%\ChatHelper\data.json
+    storage = JsonStorageManager()
 
     send = SendEngine()
     dock = DockingEngine(sidebar_width=408)
-    api = JsApi(db, dock, send)
+    api = JsApi(storage, dock, send)
 
     # 前端资源路径探测
     html_path = get_resource_path(os.path.join("frontend", "dist", "index.html"))
