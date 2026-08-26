@@ -69,24 +69,20 @@ class JsApi:
         if not target_hwnd:
             return {"success": False, "error": "未检测到已激活的目标聊天窗口"}
 
-        content = target_reply.get("content", "")
-        attachments = target_reply.get("attachments", [])
-
-        # 在异步工作线程中执行发送，避免阻塞 Web 界面主循环
-        def worker():
+        # 异步线程执行实际按键发送，防止长时间逐字慢发阻塞 pywebview JS 通信通道导致程序死锁闪退
+        def async_worker():
             try:
-                ok = self.send.send_payload(
+                self.send.send_payload(
                     target_hwnd=target_hwnd,
-                    text=content,
-                    attachments=attachments,
+                    text=target_reply["content"],
+                    attachments=target_reply.get("attachments", []),
                     mode=mode
                 )
-                if ok:
-                    self.db.increment_use_count(reply_id)
+                self.db.increment_use_count(reply_id)
             except Exception as e:
-                print(f"send error: {e}")
+                print(f"[SendEngine] 发送执行异常: {e}")
 
-        threading.Thread(target=worker, daemon=True).start()
+        threading.Thread(target=async_worker, daemon=True).start()
         return {"success": True}
 
     def selectFiles(self) -> list[str]:
