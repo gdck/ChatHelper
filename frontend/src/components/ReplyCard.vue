@@ -18,24 +18,45 @@
           📎 {{ att.name || '附件' }}
         </span>
       </div>
+      
       <div class="card-actions">
-        <button class="send-btn" @click.stop="$emit('send', reply.id, 'normal')">
+        <button class="send-btn" @click.stop="$emit('send', reply.id, 'normal')" title="直接发送 (Ctrl+V + 回车)">
           <Send :size="12" />
           <span>发送</span>
         </button>
-        <button class="more-btn" @click.stop="toggleMenu">
+        <button class="more-btn" @click.stop="toggleMenu" title="更多发送模式与操作">
           <MoreVertical :size="14" />
         </button>
         
-        <div class="dropdown-menu" v-if="showMenu" @click.stop>
-          <div class="menu-item" @click="emitMode('typewriter')">逐字慢发 (打字机)</div>
-          <div class="menu-item" @click="emitMode('repeat3')">连发 3 次</div>
-          <div class="menu-item" @click="emitMode('reverse')">倒序发送</div>
-          <div class="menu-item" @click="emitMode('paste_only')">仅粘贴不回车</div>
-          <hr class="menu-divider" />
-          <div class="menu-item" @click="emitAction('edit')">编辑话术</div>
-          <div class="menu-item delete" @click="emitAction('delete')">删除话术</div>
-        </div>
+        <Transition name="dropdown">
+          <div class="dropdown-menu" v-if="showMenu" @click.stop>
+            <div class="menu-item" @click="emitMode('typewriter')">
+              <Sparkles :size="13" class="menu-icon" />
+              <span>逐字慢发 (打字机)</span>
+            </div>
+            <div class="menu-item" @click="emitMode('repeat3')">
+              <Repeat :size="13" class="menu-icon" />
+              <span>连发 3 次</span>
+            </div>
+            <div class="menu-item" @click="emitMode('reverse')">
+              <ArrowLeftRight :size="13" class="menu-icon" />
+              <span>倒序发送</span>
+            </div>
+            <div class="menu-item" @click="emitMode('paste_only')">
+              <ClipboardCopy :size="13" class="menu-icon" />
+              <span>仅粘贴不回车</span>
+            </div>
+            <hr class="menu-divider" />
+            <div class="menu-item" @click="emitAction('edit')">
+              <Edit3 :size="13" class="menu-icon" />
+              <span>编辑话术</span>
+            </div>
+            <div class="menu-item delete" @click="emitAction('delete')">
+              <Trash2 :size="13" class="menu-icon" />
+              <span>删除话术</span>
+            </div>
+          </div>
+        </Transition>
       </div>
     </div>
   </div>
@@ -43,7 +64,16 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Send, MoreVertical } from 'lucide-vue-next'
+import {
+  Send,
+  MoreVertical,
+  Sparkles,
+  Repeat,
+  ArrowLeftRight,
+  ClipboardCopy,
+  Edit3,
+  Trash2
+} from 'lucide-vue-next'
 
 const props = defineProps({
   reply: {
@@ -151,12 +181,13 @@ onUnmounted(() => {
   margin-top: 8px;
   padding-top: 6px;
   border-top: 1px dashed var(--border-color);
+  position: relative;
 }
 .attachments {
   display: flex;
   gap: 4px;
   overflow-x: auto;
-  max-width: 230px;
+  max-width: 210px;
 }
 .att-chip {
   font-size: 11px;
@@ -170,8 +201,9 @@ onUnmounted(() => {
 .card-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   position: relative;
+  margin-left: auto; /* 关键：始终右对齐，防止下拉菜单偏出屏幕左侧 */
 }
 .send-btn {
   display: flex;
@@ -199,6 +231,7 @@ onUnmounted(() => {
   border-radius: 4px;
   display: flex;
   align-items: center;
+  transition: all 0.15s;
 }
 .more-btn:hover {
   background: var(--border-color);
@@ -207,24 +240,38 @@ onUnmounted(() => {
 .dropdown-menu {
   position: absolute;
   right: 0;
-  bottom: 30px;
+  bottom: calc(100% + 6px);
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
-  box-shadow: var(--shadow-md);
-  padding: 4px 0;
-  z-index: 100;
-  width: 145px;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: 4px;
+  z-index: 300;
+  width: 155px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 .menu-item {
-  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
   font-size: 12px;
   color: var(--text-primary);
+  border-radius: 5px;
   cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.menu-icon {
+  opacity: 0.7;
+  flex-shrink: 0;
 }
 .menu-item:hover {
   background: var(--accent-light);
   color: var(--accent-color);
+}
+.menu-item:hover .menu-icon {
+  opacity: 1;
 }
 .menu-divider {
   border: none;
@@ -237,5 +284,16 @@ onUnmounted(() => {
 .menu-item.delete:hover {
   background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
+}
+
+/* 动效 */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(6px) scale(0.96);
 }
 </style>
