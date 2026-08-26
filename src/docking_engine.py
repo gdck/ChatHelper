@@ -50,13 +50,13 @@ class DockingEngine:
     def set_helper_hwnd(self, hwnd: int) -> None:
         self.helper_hwnd = hwnd
 
-    def calculate_dock_pos(self, rect: tuple[int, int, int, int], collapsed: bool, sidebar_width: int = 408, pill_width: int = 126, pill_height: int = 36) -> tuple[int, int, int, int]:
+    def calculate_dock_pos(self, rect: tuple[int, int, int, int], collapsed: bool, sidebar_width: int = 408, icon_size: int = 28) -> tuple[int, int, int, int]:
         left, top, right, bottom = rect
         width = right - left
         height = bottom - top
         if collapsed:
-            # 贴合在宿主窗口右上角顶部边栏区域
-            return (right - pill_width - 8, top + 6, pill_width, pill_height)
+            # 严格对齐 Delphi 原版坐标逻辑：r.Left + r.Width - 28, r.Top - 28, 28, 28
+            return (right - icon_size, top - icon_size, icon_size, icon_size)
         else:
             return (right, top, sidebar_width, height)
 

@@ -9,9 +9,9 @@ def test_docking_rect_calculations():
     expanded_pos = engine.calculate_dock_pos(target_rect, collapsed=False, sidebar_width=408)
     assert expanded_pos == (900, 100, 408, 600)
 
-    # 折叠模式：右上角 126x36 胶囊吸附标
-    collapsed_pos = engine.calculate_dock_pos(target_rect, collapsed=True, pill_width=126, pill_height=36)
-    assert collapsed_pos == (766, 106, 126, 36)
+    # 折叠模式：右上角 28x28 极简微标 (Delphi 原版逻辑)
+    collapsed_pos = engine.calculate_dock_pos(target_rect, collapsed=True, icon_size=28)
+    assert collapsed_pos == (872, 72, 28, 28)
 
 def test_is_supported_target():
     engine = DockingEngine()

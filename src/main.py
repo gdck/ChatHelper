@@ -59,10 +59,10 @@ def create_app():
         js_api=api,
         width=408,
         height=700,
+        min_size=(28, 28),
         frameless=True,
         easy_drag=False,
-        on_top=True,
-        transparent=True
+        on_top=True
     )
     api.set_window(window)
 
@@ -77,9 +77,15 @@ def create_app():
     def on_loaded():
         hwnd = ctypes.windll.user32.FindWindowW(None, "微信聊天助手")
         if hwnd:
-            # 添加 WS_EX_TOOLWINDOW 防止任务栏污染
-            style = ctypes.windll.user32.GetWindowLongW(hwnd, -20)
-            ctypes.windll.user32.SetWindowLongW(hwnd, -20, style | 0x00000080)
+            # 纯 POPUP 与 TOOLWINDOW 扩展样式，解除 Windows 窗口最小尺寸限制
+            WS_POPUP = 0x80000000
+            WS_VISIBLE = 0x10000000
+            WS_CLIPCHILDREN = 0x02000000
+            WS_EX_TOOLWINDOW = 0x00000080
+            WS_EX_TOPMOST = 0x00000008
+
+            ctypes.windll.user32.SetWindowLongW(hwnd, -16, WS_POPUP | WS_VISIBLE | WS_CLIPCHILDREN)
+            ctypes.windll.user32.SetWindowLongW(hwnd, -20, WS_EX_TOOLWINDOW | WS_EX_TOPMOST)
             dock.set_helper_hwnd(hwnd)
             dock.start()
 
