@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg-primary: rgba(255, 255, 255, 0.9);
+  --bg-secondary: rgba(246, 248, 250, 0.95);
+  --bg-card: #ffffff;
+  --border-color: rgba(226, 232, 240, 0.9);
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --accent-color: #07c160;
+  --accent-hover: #06ad56;
+  --accent-light: rgba(7, 193, 96, 0.12);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.dark {
+  --bg-primary: rgba(20, 24, 30, 0.94);
+  --bg-secondary: rgba(28, 34, 44, 0.96);
+  --bg-card: #1e293b;
+  --border-color: rgba(51, 65, 85, 0.7);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --accent-color: #07c160;
+  --accent-hover: #10d66e;
+  --accent-light: rgba(7, 193, 96, 0.2);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background: var(--bg-primary);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: var(--text-primary);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  border-left: 1px solid var(--border-color);
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.7);
+}
