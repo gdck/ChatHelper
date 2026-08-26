@@ -29,7 +29,7 @@ def build():
             except Exception as e:
                 print(f"提示: 清理 {folder} 遇到异常: {e}")
 
-    print("[4/4] 运行 PyInstaller 生成极致精简的便携绿色包...")
+    print("[4/4] 运行 PyInstaller 生成单文件独立可执行程序 (--onefile)...")
     
     # 排除庞大的无用依赖（PyQt6 488MB、numpy 26MB、cryptography 等）
     exclude_modules = [
@@ -44,7 +44,7 @@ def build():
         "-m",
         "PyInstaller",
         "--noconsole",
-        "--onedir",
+        "--onefile",
         "--name=ChatHelper",
         f"--add-data={dist_dir};frontend/dist",
         "--hidden-import=win32clipboard",
@@ -62,8 +62,14 @@ def build():
         cmd.extend(["--exclude-module", mod])
 
     subprocess.run(cmd, cwd=base_dir, check=True)
+    
+    exe_path = os.path.join(base_dir, "dist", "ChatHelper.exe")
+    size_mb = os.path.getsize(exe_path) / (1024 * 1024) if os.path.exists(exe_path) else 0
+
     print("==========================================")
-    print("[SUCCESS] 打包完成！输出绿色版路径: dist/ChatHelper/ChatHelper.exe")
+    print(f"[SUCCESS] 单文件打包完成！")
+    print(f"产物路径: {exe_path}")
+    print(f"文件大小: {size_mb:.2f} MB")
     print("==========================================")
 
 if __name__ == "__main__":
