@@ -1,0 +1,114 @@
+import time
+import datetime
+import ctypes
+from src.win32_clipboard import Win32Clipboard
+
+class SendEngine:
+    VK_CONTROL = 0x11
+    VK_RETURN = 0x0D
+    VK_V = 0x56
+    KEYEVENTF_KEYUP = 0x0002
+
+    user32 = ctypes.windll.user32
+
+    def interpolate_variables(self, template: str, extra_vars: dict = None) -> str:
+        now = datetime.datetime.now()
+        hour = now.hour
+        if 5 <= hour < 9:
+            greeting = "早上好"
+        elif 9 <= hour < 12:
+            greeting = "上午好"
+        elif 12 <= hour < 14:
+            greeting = "中午好"
+        elif 14 <= hour < 18:
+            greeting = "下午好"
+        else:
+            greeting = "晚上好"
+
+        weekdays = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"]
+        mapping = {
+            "{日期}": now.strftime("%Y-%m-%d"),
+            "{时间}": now.strftime("%H:%M:%S"),
+            "{星期}": weekdays[now.weekday()],
+            "{问候语}": greeting,
+            "{年}": str(now.year),
+            "{月}": f"{now.month:02d}",
+            "{日}": f"{now.day:02d}",
+        }
+        if extra_vars:
+            for k, v in extra_vars.items():
+                tag = k if k.startswith("{") else f"{{{k}}}"
+                mapping[tag] = str(v)
+
+        result = template
+        for tag, val in mapping.items():
+            result = result.replace(tag, val)
+        return result
+
+    def _activate_window(self, hwnd: int) -> bool:
+        try:
+            self.user32.SwitchToThisWindow(hwnd, True)
+            self.user32.SetForegroundWindow(hwnd)
+            return True
+        except Exception:
+            return False
+
+    def _simulate_paste(self, delay_ms: int = 100) -> None:
+        time.sleep(delay_ms / 1000.0)
+        self.user32.keybd_event(self.VK_CONTROL, 0, 0, 0)
+        self.user32.keybd_event(self.VK_V, 0, 0, 0)
+        self.user32.keybd_event(self.VK_V, 0, self.KEYEVENTF_KEYUP, 0)
+        self.user32.keybd_event(self.VK_CONTROL, 0, self.KEYEVENTF_KEYUP, 0)
+
+    def _simulate_enter(self, delay_ms: int = 100) -> None:
+        time.sleep(delay_ms / 1000.0)
+        self.user32.keybd_event(self.VK_RETURN, 0, 0, 0)
+        self.user32.keybd_event(self.VK_RETURN, 0, self.KEYEVENTF_KEYUP, 0)
+
+    def send_payload(self, target_hwnd: int, text: str, attachments: list[dict], mode: str = "normal", delays: dict = None) -> bool:
+        delays = delays or {"paste_delay": 120, "enter_delay": 120, "char_delay": 150}
+        p_delay = delays.get("paste_delay", 120)
+        e_delay = delays.get("enter_delay", 120)
+        c_delay = delays.get("char_delay", 150)
+
+        interpolated_text = self.interpolate_variables(text)
+
+        if not target_hwnd or not self.user32.IsWindow(target_hwnd):
+            return False
+
+        self._activate_window(target_hwnd)
+
+        if mode == "paste_only":
+            if interpolated_text:
+                Win32Clipboard.set_text(interpolated_text)
+                self._simulate_paste(p_delay)
+            return True
+
+        if mode == "reverse":
+            interpolated_text = interpolated_text[::-1]
+
+        if mode == "typewriter":
+            for ch in interpolated_text:
+                if ch.strip():
+                    Win32Clipboard.set_text(ch)
+                    self._simulate_paste(50)
+                    self._simulate_enter(50)
+                    time.sleep(c_delay / 1000.0)
+            return True
+
+        repeat_count = 3 if mode == "repeat3" else 1
+        for _ in range(repeat_count):
+            if interpolated_text:
+                Win32Clipboard.set_text(interpolated_text)
+                self._simulate_paste(p_delay)
+                self._simulate_enter(e_delay)
+
+            # 顺序发送多附件
+            for item in attachments:
+                path = item.get("path") if isinstance(item, dict) else str(item)
+                if path and os.path.exists(path):
+                    Win32Clipboard.set_files([path])
+                    self._simulate_paste(p_delay)
+                    self._simulate_enter(e_delay)
+                    time.sleep(0.15)
+        return True
