@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg-primary: rgba(255, 255, 255, 0.9);
-  --bg-secondary: rgba(246, 248, 250, 0.95);
+  --bg-primary: rgba(255, 255, 255, 0.95);
+  --bg-secondary: rgba(246, 248, 250, 0.98);
   --bg-card: #ffffff;
   --border-color: rgba(226, 232, 240, 0.9);
   --text-primary: #1e293b;
@@ -15,8 +15,8 @@
 }
 
 .dark {
-  --bg-primary: rgba(20, 24, 30, 0.94);
-  --bg-secondary: rgba(28, 34, 44, 0.96);
+  --bg-primary: rgba(20, 24, 30, 0.96);
+  --bg-secondary: rgba(28, 34, 44, 0.98);
   --bg-card: #1e293b;
   --border-color: rgba(51, 65, 85, 0.7);
   --text-primary: #f8fafc;
@@ -36,15 +36,14 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-body {
-  background: var(--bg-primary);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+html, body, #app {
+  background: transparent;
   color: var(--text-primary);
   overflow: hidden;
   height: 100vh;
   width: 100vw;
-  border-left: 1px solid var(--border-color);
+  margin: 0;
+  padding: 0;
 }
 
 /* 滚动条美化 */

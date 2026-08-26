@@ -352,6 +352,9 @@ onMounted(async () => {
   height: 100vh;
   width: 100%;
   background: var(--bg-primary);
+  border-left: 1px solid var(--border-color);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   color: var(--text-primary);
   position: relative;
   overflow: hidden;
@@ -359,6 +362,9 @@ onMounted(async () => {
 
 .app-wrapper.is-collapsed {
   background: transparent !important;
+  border-left: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   box-shadow: none !important;
 }
 </style>

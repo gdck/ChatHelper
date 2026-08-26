@@ -1,20 +1,23 @@
 <template>
-  <div class="collapsed-orb" @click="$emit('expand')" title="点击展开聊天助手">
-    <div class="orb-core">
-      <Sparkles :size="20" class="orb-icon" />
-      <span class="pulse-ring"></span>
+  <div class="collapsed-container" @click="$emit('expand')" title="点击展开快捷话术助手">
+    <div class="pill-body">
+      <div class="icon-bubble">
+        <Sparkles :size="14" />
+      </div>
+      <span class="pill-title">快捷话术</span>
+      <ChevronRight :size="14" class="arrow-icon" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { Sparkles } from 'lucide-vue-next'
+import { Sparkles, ChevronRight } from 'lucide-vue-next'
 
 defineEmits(['expand'])
 </script>
 
 <style scoped>
-.collapsed-orb {
+.collapsed-container {
   width: 100vw;
   height: 100vh;
   display: flex;
@@ -24,65 +27,60 @@ defineEmits(['expand'])
   cursor: pointer;
   user-select: none;
   overflow: hidden;
+  padding: 2px;
+  box-sizing: border-box;
 }
 
-.orb-core {
-  width: 42px;
-  height: 42px;
+.pill-body {
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #07c160 0%, #05a350 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px 0 6px;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(7, 193, 96, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-sizing: border-box;
+}
+
+.pill-body:hover {
+  transform: scale(1.03);
+  box-shadow: 0 6px 18px rgba(7, 193, 96, 0.65);
+}
+
+.pill-body:active {
+  transform: scale(0.96);
+}
+
+.icon-bubble {
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #07c160 0%, #05a04e 100%);
+  background: rgba(255, 255, 255, 0.22);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  box-shadow: 0 4px 16px rgba(7, 193, 96, 0.45), 0 0 0 1.5px rgba(255, 255, 255, 0.35);
-  position: relative;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+  flex-shrink: 0;
 }
 
-.orb-core:hover {
-  transform: scale(1.08);
-  box-shadow: 0 6px 20px rgba(7, 193, 96, 0.6), 0 0 0 2px rgba(255, 255, 255, 0.5);
+.pill-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
-.orb-core:active {
-  transform: scale(0.92);
+.arrow-icon {
+  opacity: 0.85;
+  transition: transform 0.2s ease;
 }
 
-.orb-icon {
-  animation: float 3s ease-in-out infinite;
-}
-
-.pulse-ring {
-  position: absolute;
-  inset: -4px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(7, 193, 96, 0.6);
-  animation: pulse 2.4s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-  pointer-events: none;
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(0.85);
-    opacity: 0.9;
-  }
-  70% {
-    transform: scale(1.35);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1.35);
-    opacity: 0;
-  }
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-2px);
-  }
+.pill-body:hover .arrow-icon {
+  transform: translateX(2px);
+  opacity: 1;
 }
 </style>

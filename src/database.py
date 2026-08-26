@@ -46,6 +46,32 @@ class DatabaseManager:
                 );
             """)
 
+            # 首次初始化时注入优质预置分类与示例话术
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM categories")
+            if cursor.fetchone()[0] == 0:
+                cursor.execute("INSERT INTO categories (name, sort_order) VALUES ('常用问候', 1)")
+                cat1 = cursor.lastrowid
+                cursor.execute("INSERT INTO categories (name, sort_order) VALUES ('售后服务', 2)")
+                cat2 = cursor.lastrowid
+                cursor.execute("INSERT INTO categories (name, sort_order) VALUES ('产品与报价', 3)")
+                cat3 = cursor.lastrowid
+
+                cursor.execute("""
+                    INSERT INTO quick_replies (category_id, title, content, attachments_json, tags_json, sort_order, use_count)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (cat1, '问候与介绍', '您好！祝您{问候语}，很高兴为您服务。今天是{日期}，请问有什么可以帮您？', '[]', '["高频", "问候"]', 1, 12))
+
+                cursor.execute("""
+                    INSERT INTO quick_replies (category_id, title, content, attachments_json, tags_json, sort_order, use_count)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (cat2, '7天退换货政策', '亲，我们支持7天无理由退换货。请保持包装完好，我们将安排快递上门取件。', '[]', '["售后", "政策"]', 1, 8))
+
+                cursor.execute("""
+                    INSERT INTO quick_replies (category_id, title, content, attachments_json, tags_json, sort_order, use_count)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (cat3, '产品画册与报价单', '您好，这是我们最新的产品画册与详细报价单，请您查阅。如有任何疑问随时联系我！', '[]', '["资料", "报价"]', 1, 5))
+
     def get_categories(self) -> list[dict[str, Any]]:
         conn = self.get_connection()
         cursor = conn.cursor()

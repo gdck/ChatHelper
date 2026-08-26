@@ -18,21 +18,23 @@ def db():
             pass
 
 def test_category_crud(db):
-    cat_id = db.add_category("常见问答", 1)
+    initial_count = len(db.get_categories())
+    cat_id = db.add_category("新测试分类", 99)
     assert cat_id > 0
     
     categories = db.get_categories()
-    assert len(categories) == 1
-    assert categories[0]["name"] == "常见问答"
-    assert categories[0]["reply_count"] == 0
+    assert len(categories) == initial_count + 1
+    new_cat = next(c for c in categories if c["id"] == cat_id)
+    assert new_cat["name"] == "新测试分类"
+    assert new_cat["reply_count"] == 0
 
-    assert db.update_category(cat_id, "常用话术", 2) is True
-    updated = db.get_categories()[0]
-    assert updated["name"] == "常用话术"
-    assert updated["sort_order"] == 2
+    assert db.update_category(cat_id, "修改后分类", 100) is True
+    updated = next(c for c in db.get_categories() if c["id"] == cat_id)
+    assert updated["name"] == "修改后分类"
+    assert updated["sort_order"] == 100
 
     assert db.delete_category(cat_id) is True
-    assert len(db.get_categories()) == 0
+    assert len(db.get_categories()) == initial_count
 
 def test_reply_crud_and_search(db):
     cat_id = db.add_category("售后服务", 1)

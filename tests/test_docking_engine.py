@@ -9,9 +9,9 @@ def test_docking_rect_calculations():
     expanded_pos = engine.calculate_dock_pos(target_rect, collapsed=False, sidebar_width=408)
     assert expanded_pos == (900, 100, 408, 600)
 
-    # 折叠模式：右上侧 46x46 悬浮标
-    collapsed_pos = engine.calculate_dock_pos(target_rect, collapsed=True, icon_size=46)
-    assert collapsed_pos == (900, 180, 46, 46)
+    # 折叠模式：右上角 126x36 胶囊吸附标
+    collapsed_pos = engine.calculate_dock_pos(target_rect, collapsed=True, pill_width=126, pill_height=36)
+    assert collapsed_pos == (766, 106, 126, 36)
 
 def test_is_supported_target():
     engine = DockingEngine()
