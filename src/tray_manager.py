@@ -6,7 +6,7 @@ class Win32NativeTray:
     """
     纯 Win32 原生托盘图标管理器
     零外部依赖（彻底摆脱 PIL、Pillow、pystray 庞大体积），体积缩减数十兆
-    原生支持 Windows 10/11 暗黑/明亮自适应主题菜单渲染
+    显式绑定 64 位 Win32 ABI 函数原型，确保菜单项文本清晰正确渲染
     """
     WM_USER = 0x0400
     WM_TRAY = WM_USER + 20
@@ -36,6 +36,18 @@ class Win32NativeTray:
     user32 = ctypes.windll.user32
     shell32 = ctypes.windll.shell32
     gdi32 = ctypes.windll.gdi32
+
+    # 64 位 Win32 函数类型显式声明，杜绝指针截断导致的文本空白
+    user32.CreatePopupMenu.restype = wintypes.HMENU
+    user32.AppendMenuW.argtypes = [wintypes.HMENU, wintypes.UINT, ctypes.c_size_t, wintypes.LPCWSTR]
+    user32.AppendMenuW.restype = wintypes.BOOL
+    user32.TrackPopupMenuEx.argtypes = [wintypes.HMENU, wintypes.UINT, ctypes.c_int, ctypes.c_int, wintypes.HWND, ctypes.c_void_p]
+    user32.TrackPopupMenuEx.restype = wintypes.BOOL
+    user32.DestroyMenu.argtypes = [wintypes.HMENU]
+    user32.DestroyMenu.restype = wintypes.BOOL
+    user32.SetForegroundWindow.argtypes = [wintypes.HWND]
+    user32.GetCursorPos.argtypes = [ctypes.POINTER(wintypes.POINT)]
+    user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
 
     class NOTIFYICONDATAW(ctypes.Structure):
         _fields_ = [
@@ -86,33 +98,6 @@ class Win32NativeTray:
         self.h_icon = 0
         self._thread = None
         self._wndproc = None
-        self._enable_dark_mode()
-
-    def _enable_dark_mode(self, hwnd=None):
-        """开启 Windows 10/11 原生菜单暗黑模式，解决白底白字/对比度缺失问题"""
-        try:
-            kernel32 = ctypes.windll.kernel32
-            uxtheme = ctypes.windll.uxtheme
-            kernel32.GetProcAddress.argtypes = [wintypes.HMODULE, ctypes.c_char_p]
-            kernel32.GetProcAddress.restype = ctypes.c_void_p
-
-            # Ordinal 135: SetPreferredAppMode (2 = ForceDark, 1 = AllowDark)
-            proc_135 = kernel32.GetProcAddress(uxtheme._handle, ctypes.cast(135, ctypes.c_char_p))
-            if proc_135:
-                ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.c_int)(proc_135)(2)
-
-            # Ordinal 133: AllowDarkModeForWindow
-            if hwnd:
-                proc_133 = kernel32.GetProcAddress(uxtheme._handle, ctypes.cast(133, ctypes.c_char_p))
-                if proc_133:
-                    ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, ctypes.c_bool)(proc_133)(hwnd, True)
-
-            # Ordinal 136: FlushMenuThemes
-            proc_136 = kernel32.GetProcAddress(uxtheme._handle, ctypes.cast(136, ctypes.c_char_p))
-            if proc_136:
-                ctypes.WINFUNCTYPE(ctypes.c_void_p)(proc_136)()
-        except Exception:
-            pass
 
     def _create_green_icon(self) -> int:
         """纯 GDI 动态绘制高品质绿色对话气泡托盘图标"""
@@ -172,7 +157,6 @@ class Win32NativeTray:
         return h_icon
 
     def _show_menu(self):
-        self._enable_dark_mode(self.hwnd)
         h_menu = self.user32.CreatePopupMenu()
         self.user32.AppendMenuW(h_menu, self.MF_STRING, self.ID_TOGGLE, "显示 / 隐藏助手")
         self.user32.AppendMenuW(h_menu, self.MF_SEPARATOR, 0, None)
@@ -229,7 +213,6 @@ class Win32NativeTray:
             0, 0, 0, 0, 0, 0, 0, None
         )
 
-        self._enable_dark_mode(self.hwnd)
         self.h_icon = self._create_green_icon()
 
         nid = self.NOTIFYICONDATAW()

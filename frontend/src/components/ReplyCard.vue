@@ -1,10 +1,11 @@
 <template>
   <div
     class="reply-compact-row"
-    @dblclick="$emit('send', reply.id, 'normal')"
+    @dblclick="$emit('send', reply.id, 'paste_only')"
     @contextmenu.prevent="handleRightClick($event)"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
+    title="双击仅粘贴到输入框不回车，右键弹出快捷动作菜单"
   >
     <div class="row-left">
       <div class="status-indicator"></div>
@@ -23,7 +24,12 @@
         <Send :size="11" />
         <span>发送</span>
       </button>
-      <button class="more-btn" @click.stop="handleOpenMenu($event)" title="更多发送模式与操作 (右键也可弹出)">
+      <button
+        ref="moreBtnRef"
+        class="more-btn"
+        @click.stop="handleOpenMenu"
+        title="更多发送模式与操作 (右键也可弹出)"
+      >
         <MoreVertical :size="13" />
       </button>
     </div>
@@ -66,6 +72,7 @@ const props = defineProps({
 
 const emit = defineEmits(['send', 'edit', 'delete', 'open-menu'])
 
+const moreBtnRef = ref(null)
 const isHovered = ref(false)
 const showTooltip = ref(false)
 const targetRect = reactive({ top: 0, bottom: 0, left: 0, right: 0, height: 0 })
@@ -119,28 +126,36 @@ const tooltipStyle = computed(() => {
   }
 })
 
-function handleRightClick(event) {
-  // 右键时立刻隐藏 Tooltip
+function getAnchorRect() {
+  if (moreBtnRef.value) {
+    return moreBtnRef.value.getBoundingClientRect()
+  }
+  return {
+    left: targetRect.right - 24,
+    right: targetRect.right,
+    top: targetRect.top,
+    bottom: targetRect.bottom,
+    width: 24,
+    height: targetRect.height
+  }
+}
+
+function handleRightClick() {
   showTooltip.value = false
   if (hoverTimer) {
     clearTimeout(hoverTimer)
     hoverTimer = null
   }
-  const rect = {
-    left: event.clientX,
-    top: event.clientY,
-    right: event.clientX,
-    bottom: event.clientY,
-    width: 0,
-    height: 0
-  }
-  emit('open-menu', rect, props.reply)
+  emit('open-menu', getAnchorRect(), props.reply)
 }
 
-function handleOpenMenu(event) {
+function handleOpenMenu() {
   showTooltip.value = false
-  const rect = event.currentTarget.getBoundingClientRect()
-  emit('open-menu', rect, props.reply)
+  if (hoverTimer) {
+    clearTimeout(hoverTimer)
+    hoverTimer = null
+  }
+  emit('open-menu', getAnchorRect(), props.reply)
 }
 </script>
 
