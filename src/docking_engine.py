@@ -27,12 +27,20 @@ class DockingEngine:
     SWP_HIDEWINDOW = 0x0080
 
     SUPPORTED_PROCESSES = {
-        "wechat.exe": ["WeChatMainWndForPC", "ChatWnd"],
-        "wxwork.exe": ["WeWorkWindow"],
-        "qq.exe": ["TXGuiFoundation"],
-        "tim.exe": ["TXGuiFoundation"],
-        "dingtalk.exe": ["StandardFrame_DingTalk"],
-        "aliworkbench.exe": ["StandardFrame"],
+        "wechat.exe": ["WeChatMainWndForPC", "ChatWnd", "Chrome_WidgetWin_0", "Chrome_WidgetWin_1", "Qt5152QWindowIcon", "Qt6QWindowIcon"],
+        "weixin.exe": ["WeixinMainWndForPC", "WeChatMainWndForPC", "ChatWnd", "Chrome_WidgetWin_0", "Chrome_WidgetWin_1", "Qt5152QWindowIcon", "Qt6QWindowIcon", "Weixin"],
+        "wxwork.exe": ["WeWorkWindow", "Chrome_WidgetWin_0", "Chrome_WidgetWin_1"],
+        "qq.exe": ["TXGuiFoundation", "Chrome_WidgetWin_0", "Chrome_WidgetWin_1"],
+        "tim.exe": ["TXGuiFoundation", "Chrome_WidgetWin_0", "Chrome_WidgetWin_1"],
+        "dingtalk.exe": ["StandardFrame_DingTalk", "StandardFrame", "Chrome_WidgetWin_0", "Chrome_WidgetWin_1"],
+        "aliworkbench.exe": ["StandardFrame", "Chrome_WidgetWin_0", "Chrome_WidgetWin_1"],
+    }
+
+    EXCLUDED_TITLES = {
+        "提示", "确认", "警告", "错误", "删除", "登录", "QQ登录", "退出", "转发",
+        "截图", "表情", "查看图片", "图片查看器", "设置", "系统设置", "文件传输", "关于",
+        "查找", "加为好友", "消息盒子", "未读消息", "系统消息", "好友管理", "群管理",
+        "Alert", "Notice", "Warning", "Confirm", "Login", "Settings"
     }
 
     user32 = ctypes.windll.user32
@@ -72,8 +80,8 @@ class DockingEngine:
         self.user32.GetWindowTextW(hwnd, buff, length + 1)
         title = buff.value
 
-        class_buff = ctypes.create_unicode_buffer(256)
-        self.user32.GetClassNameW(hwnd, class_buff, 256)
+        class_buff = ctypes.create_unicode_buffer(512)
+        self.user32.GetClassNameW(hwnd, class_buff, 512)
         class_name = class_buff.value
 
         pid = wintypes.DWORD()
@@ -96,31 +104,57 @@ class DockingEngine:
             rect=(rect.left, rect.top, rect.right, rect.bottom)
         )
 
-    EXCLUDED_TITLES = {
-        "提示", "确认", "警告", "错误", "删除", "登录", "QQ登录", "退出", "转发",
-        "截图", "表情", "查看图片", "图片查看器", "设置", "系统设置", "文件传输", "关于",
-        "查找", "加为好友", "消息盒子", "未读消息", "系统消息", "好友管理", "群管理",
-        "Alert", "Notice", "Warning", "Confirm", "Login", "Settings"
-    }
-
     def is_supported_target(self, info: TargetWindowInfo) -> bool:
-        if not info or not info.title or not info.title.strip():
+        if not info:
             return False
 
-        clean_title = info.title.strip()
+        # 1. 检查进程名是否属于支持的 IM 客户端（兼容重构后的 Weixin.exe、WeChat.exe、QQ 等）
+        p_name = (info.process_name or "").lower()
+        matched_classes = None
+        for proc, classes in self.SUPPORTED_PROCESSES.items():
+            if proc in p_name:
+                matched_classes = classes
+                break
+
+        if matched_classes is None:
+            # 模糊前缀匹配，排除非主界面的辅助进程（如 WeChatAppEx/QQExternal）
+            if "weixin" in p_name:
+                matched_classes = self.SUPPORTED_PROCESSES["weixin.exe"]
+            elif "wechat" in p_name and not "wechatappex" in p_name:
+                matched_classes = self.SUPPORTED_PROCESSES["wechat.exe"]
+            elif "wxwork" in p_name:
+                matched_classes = self.SUPPORTED_PROCESSES["wxwork.exe"]
+            elif "qq" in p_name and not "qqexternal" in p_name:
+                matched_classes = self.SUPPORTED_PROCESSES["qq.exe"]
+            elif "tim" in p_name:
+                matched_classes = self.SUPPORTED_PROCESSES["tim.exe"]
+            elif "dingtalk" in p_name:
+                matched_classes = self.SUPPORTED_PROCESSES["dingtalk.exe"]
+            elif "aliworkbench" in p_name:
+                matched_classes = self.SUPPORTED_PROCESSES["aliworkbench.exe"]
+            else:
+                return False
+
+        # 2. 过滤无效弹窗/提示框标题
+        clean_title = (info.title or "").strip()
         if clean_title in self.EXCLUDED_TITLES:
             return False
 
-        # 过滤非聊天主窗体的小型提示框/对话框（正常会话窗体宽 >= 420，高 >= 320）
+        # 3. 过滤过小尺寸的弹窗（正常会话主窗体宽 >= 420，高 >= 320）
         left, top, right, bottom = info.rect
         width = right - left
         height = bottom - top
         if width < 420 or height < 320:
             return False
 
-        for proc, classes in self.SUPPORTED_PROCESSES.items():
-            if proc == info.process_name and info.class_name in classes:
-                return True
+        # 4. 检查类名：命中显式类名或现代 UI 动态类名
+        if info.class_name in matched_classes:
+            return True
+
+        c_lower = info.class_name.lower()
+        if any(k in c_lower for k in ["wechat", "weixin", "chat", "chrome_widgetwin", "qt", "txgui", "standardframe"]):
+            return True
+
         return False
 
     def update_dock_position(self, force: bool = False) -> None:
@@ -137,8 +171,9 @@ class DockingEngine:
         if info and self.is_supported_target(info):
             if target_hwnd != self.current_target_hwnd:
                 self.current_target_hwnd = target_hwnd
+                display_title = info.title if info.title else f"{info.process_name}"
                 if callable(self.on_target_changed):
-                    self.on_target_changed(info.title)
+                    self.on_target_changed(display_title)
 
             x, y, w, h = self.calculate_dock_pos(info.rect, self.collapsed, self.sidebar_width)
             self.user32.SetWindowPos(

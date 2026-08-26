@@ -16,6 +16,7 @@ def test_docking_rect_calculations():
 def test_is_supported_target():
     engine = DockingEngine()
     
+    # 传统 WeChat 3.x
     wechat_info = TargetWindowInfo(
         hwnd=12345,
         title="文件传输助手",
@@ -24,6 +25,16 @@ def test_is_supported_target():
         rect=(0, 0, 800, 600)
     )
     assert engine.is_supported_target(wechat_info) is True
+
+    # 现代化重构版 WeChat 4.0 (Weixin.exe + WeixinMainWndForPC / Chrome_WidgetWin_1)
+    modern_weixin_info = TargetWindowInfo(
+        hwnd=12346,
+        title="微信业务交流群",
+        class_name="Chrome_WidgetWin_1",
+        process_name="weixin.exe",
+        rect=(50, 50, 950, 750)
+    )
+    assert engine.is_supported_target(modern_weixin_info) is True
 
     qq_chat_info = TargetWindowInfo(
         hwnd=23456,
