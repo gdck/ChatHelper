@@ -1,6 +1,8 @@
 import ctypes
 from ctypes import wintypes
 import threading
+import os
+import sys
 
 class Win32NativeTray:
     """
@@ -119,6 +121,8 @@ class Win32NativeTray:
     user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
     user32.DefWindowProcW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
     user32.DefWindowProcW.restype = ctypes.c_longlong
+    user32.LoadImageW.argtypes = [wintypes.HINSTANCE, wintypes.LPCWSTR, wintypes.UINT, ctypes.c_int, ctypes.c_int, wintypes.UINT]
+    user32.LoadImageW.restype = wintypes.HANDLE
 
     def __init__(self, on_toggle=None, on_exit=None):
         self.on_toggle = on_toggle
@@ -144,6 +148,27 @@ class Win32NativeTray:
             res.fMask |= self.MIIM_FTYPE
             res.fType = f_type
         return res
+
+    def _get_app_icon(self) -> int:
+        """加载 app.ico 作为托盘高清图标，若缺失则回退至 GDI 动态标"""
+        candidates = [
+            os.path.join(getattr(sys, "_MEIPASS", ""), "app.ico"),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app.ico"),
+            os.path.join(os.getcwd(), "app.ico"),
+            os.path.join(os.path.dirname(sys.executable), "app.ico"),
+        ]
+        for path in candidates:
+            if path and os.path.exists(path):
+                IMAGE_ICON = 1
+                LR_LOADFROMFILE = 0x00000010
+                LR_DEFAULTSIZE = 0x00000040
+                h_icon = self.user32.LoadImageW(
+                    0, path, IMAGE_ICON, 0, 0,
+                    LR_LOADFROMFILE | LR_DEFAULTSIZE
+                )
+                if h_icon:
+                    return h_icon
+        return self._create_green_icon()
 
     def _create_green_icon(self) -> int:
         """纯 GDI 动态绘制高品质绿色对话气泡托盘图标"""
@@ -255,11 +280,15 @@ class Win32NativeTray:
         WNDPROC = ctypes.WINFUNCTYPE(ctypes.c_longlong, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
         self._wndproc = WNDPROC(self._wnd_proc)
 
+        self.h_icon = self._get_app_icon()
+
         cls_name = "ChatHelper_NativeTray_Class"
         wc = self.WNDCLASSEXW()
         wc.cbSize = ctypes.sizeof(self.WNDCLASSEXW)
         wc.lpfnWndProc = ctypes.cast(self._wndproc, ctypes.c_void_p).value
         wc.hInstance = h_inst
+        wc.hIcon = self.h_icon
+        wc.hIconSm = self.h_icon
         wc.lpszClassName = cls_name
         self.user32.RegisterClassExW(ctypes.byref(wc))
 
@@ -267,8 +296,6 @@ class Win32NativeTray:
             0, cls_name, "ChatHelper_TrayWnd", 0,
             0, 0, 0, 0, 0, 0, h_inst, None
         )
-
-        self.h_icon = self._create_green_icon()
 
         nid = self.NOTIFYICONDATAW()
         nid.cbSize = ctypes.sizeof(self.NOTIFYICONDATAW)

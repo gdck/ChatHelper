@@ -8,6 +8,7 @@ def build():
     frontend_dir = os.path.join(base_dir, "frontend")
     dist_dir = os.path.join(frontend_dir, "dist")
     target_exe = os.path.join(base_dir, "dist", "ChatHelper.exe")
+    ico_path = os.path.join(base_dir, "app.ico")
 
     print("[1/4] 处理运行中的旧实例与文件占用...")
     if sys.platform == "win32":
@@ -40,7 +41,7 @@ def build():
         except Exception as e:
             print(f"提示: 清理 build 遇到异常: {e}")
 
-    print("[4/4] 运行 PyInstaller 生成单文件独立可执行程序 (--onefile --uac-admin)...")
+    print("[4/4] 运行 PyInstaller 生成单文件独立可执行程序 (--onefile --uac-admin --icon=app.ico)...")
     
     # 极简依赖剪裁：彻底移除 sqlite3、Pillow、pystray、Qt、科学计算等庞大模块
     # 注意：保留 pywebview 必需的标准库模块（如 http、email 等）
@@ -69,6 +70,10 @@ def build():
         "-y",
         os.path.join(base_dir, "src", "main.py")
     ]
+
+    if os.path.exists(ico_path):
+        cmd.append(f"--icon={ico_path}")
+        cmd.append(f"--add-data={ico_path};.")
 
     for mod in exclude_modules:
         cmd.extend(["--exclude-module", mod])
