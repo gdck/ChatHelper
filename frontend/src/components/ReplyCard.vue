@@ -34,7 +34,7 @@
       </button>
     </div>
 
-    <!-- 悬浮完整内容预览 Tooltip（智能上下避让，绝不遮挡当前记录） -->
+    <!-- 悬浮完整内容预览 Tooltip（智能上下避让，自适应暗黑模式） -->
     <Teleport to="body">
       <div
         v-if="showTooltip"
@@ -91,7 +91,7 @@ function handleMouseEnter(e) {
     if (isHovered.value) {
       showTooltip.value = true
     }
-  }, 400)
+  }, 350)
 }
 
 function handleMouseLeave() {
@@ -270,23 +270,24 @@ function handleOpenMenu() {
   color: var(--text-primary);
 }
 
-/* Tooltip 预览卡片（半透明磨砂质感，垂直智能避让） */
+/* Tooltip 预览卡片（完整适配浅色/深色主题，毛玻璃质感，垂直智能避让） */
 .hover-preview-tooltip {
   position: fixed;
-  z-index: 1000;
+  z-index: 10000;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
   padding: 10px 12px;
   pointer-events: none;
   animation: fadeIn 0.14s ease-out;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   box-sizing: border-box;
+  color: var(--text-primary);
 }
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
+  from { opacity: 0; transform: translateY(-3px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .tooltip-header {
@@ -308,7 +309,7 @@ function handleOpenMenu() {
 }
 .tooltip-content {
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.5;
   color: var(--text-primary);
   white-space: pre-wrap;
   word-break: break-word;
@@ -319,7 +320,8 @@ function handleOpenMenu() {
   padding-top: 4px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
+  border-top: 1px dashed var(--border-color);
 }
 .tooltip-tags, .tooltip-atts {
   display: flex;
@@ -329,12 +331,16 @@ function handleOpenMenu() {
 .t-tag {
   font-size: 10.5px;
   color: var(--accent-color);
+  background: var(--accent-light);
+  padding: 1px 5px;
+  border-radius: 3px;
 }
 .t-att {
   font-size: 10.5px;
   color: var(--text-secondary);
   background: var(--bg-secondary);
-  padding: 1px 4px;
+  border: 1px solid var(--border-color);
+  padding: 1px 5px;
   border-radius: 3px;
 }
 </style>

@@ -355,6 +355,16 @@ function handleThemeChange(dark) {
   isDark.value = dark
 }
 
+watch(isDark, (val) => {
+  if (val) {
+    document.documentElement.classList.add('dark')
+    document.body.classList.add('dark')
+  } else {
+    document.documentElement.classList.remove('dark')
+    document.body.classList.remove('dark')
+  }
+}, { immediate: true })
+
 async function handleDataRestored() {
   selectedCategoryId.value = null
   searchKeyword.value = ''

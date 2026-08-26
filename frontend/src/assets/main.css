@@ -14,7 +14,7 @@
   --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
 
-.dark {
+:root.dark, body.dark, .dark {
   --bg-primary: rgba(20, 24, 30, 0.96);
   --bg-secondary: rgba(28, 34, 44, 0.98);
   --bg-card: #1e293b;
