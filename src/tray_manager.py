@@ -4,9 +4,9 @@ import threading
 
 class Win32NativeTray:
     """
-    纯 Win32 原生托盘图标管理器
+    纯 Win32 原生托盘图标管理器 (infi.systray 经典可靠模型)
     零外部依赖（彻底摆脱 PIL、Pillow、pystray 庞大体积），体积缩减数十兆
-    标准 Win32 64-bit ABI 规范，原生系统级菜单，文本与对比度完美呈现
+    使用 Microsoft 推荐的 InsertMenuItemW + MENUITEMINFOW 原生系统标准菜单
     """
     WM_USER = 0x0400
     WM_TRAY = WM_USER + 20
@@ -25,30 +25,28 @@ class Win32NativeTray:
     NIF_ICON = 0x00000002
     NIF_TIP = 0x00000004
 
+    MIIM_STATE = 0x00000001
+    MIIM_ID = 0x00000002
+    MIIM_SUBMENU = 0x00000004
+    MIIM_CHECKMARKS = 0x00000008
+    MIIM_TYPE = 0x00000010
+    MIIM_DATA = 0x00000020
+    MIIM_STRING = 0x00000040
+    MIIM_BITMAP = 0x00000080
+    MIIM_FTYPE = 0x00000100
+
     MF_STRING = 0x00000000
     MF_SEPARATOR = 0x00000800
+    TPM_LEFTALIGN = 0x0000
     TPM_RIGHTBUTTON = 0x0002
-    TPM_RETURNCMD = 0x0100
-    TPM_NONOTIFY = 0x0080
 
     ID_TOGGLE = 1001
     ID_EXIT = 1002
 
     user32 = ctypes.windll.user32
+    kernel32 = ctypes.windll.kernel32
     shell32 = ctypes.windll.shell32
     gdi32 = ctypes.windll.gdi32
-
-    # 显式声明 64 位 Win32 函数类型签名，确保字符串指针与返回值零截断
-    user32.CreatePopupMenu.restype = wintypes.HMENU
-    user32.AppendMenuW.argtypes = [wintypes.HMENU, wintypes.UINT, ctypes.c_size_t, ctypes.c_wchar_p]
-    user32.AppendMenuW.restype = wintypes.BOOL
-    user32.TrackPopupMenu.argtypes = [wintypes.HMENU, wintypes.UINT, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.HWND, ctypes.c_void_p]
-    user32.TrackPopupMenu.restype = wintypes.UINT
-    user32.DestroyMenu.argtypes = [wintypes.HMENU]
-    user32.DestroyMenu.restype = wintypes.BOOL
-    user32.SetForegroundWindow.argtypes = [wintypes.HWND]
-    user32.GetCursorPos.argtypes = [ctypes.POINTER(wintypes.POINT)]
-    user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
 
     class NOTIFYICONDATAW(ctypes.Structure):
         _fields_ = [
@@ -83,6 +81,22 @@ class Win32NativeTray:
             ("hIconSm", wintypes.HICON),
         ]
 
+    class MENUITEMINFOW(ctypes.Structure):
+        _fields_ = [
+            ("cbSize", wintypes.UINT),
+            ("fMask", wintypes.UINT),
+            ("fType", wintypes.UINT),
+            ("fState", wintypes.UINT),
+            ("wID", wintypes.UINT),
+            ("hSubMenu", wintypes.HMENU),
+            ("hbmpChecked", wintypes.HBITMAP),
+            ("hbmpUnchecked", wintypes.HBITMAP),
+            ("dwItemData", ctypes.c_ulonglong),
+            ("dwTypeData", ctypes.c_wchar_p),
+            ("cch", wintypes.UINT),
+            ("hbmpItem", wintypes.HBITMAP),
+        ]
+
     class ICONINFO(ctypes.Structure):
         _fields_ = [
             ("fIcon", wintypes.BOOL),
@@ -92,6 +106,20 @@ class Win32NativeTray:
             ("hbmColor", wintypes.HBITMAP),
         ]
 
+    # 显式声明 Win32 64-bit 原型
+    user32.CreatePopupMenu.restype = wintypes.HMENU
+    user32.InsertMenuItemW.argtypes = [wintypes.HMENU, wintypes.UINT, wintypes.BOOL, ctypes.POINTER(MENUITEMINFOW)]
+    user32.InsertMenuItemW.restype = wintypes.BOOL
+    user32.TrackPopupMenu.argtypes = [wintypes.HMENU, wintypes.UINT, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.HWND, ctypes.c_void_p]
+    user32.TrackPopupMenu.restype = wintypes.BOOL
+    user32.DestroyMenu.argtypes = [wintypes.HMENU]
+    user32.DestroyMenu.restype = wintypes.BOOL
+    user32.SetForegroundWindow.argtypes = [wintypes.HWND]
+    user32.GetCursorPos.argtypes = [ctypes.POINTER(wintypes.POINT)]
+    user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+    user32.DefWindowProcW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+    user32.DefWindowProcW.restype = ctypes.c_longlong
+
     def __init__(self, on_toggle=None, on_exit=None):
         self.on_toggle = on_toggle
         self.on_exit = on_exit
@@ -99,6 +127,23 @@ class Win32NativeTray:
         self.h_icon = 0
         self._thread = None
         self._wndproc = None
+
+    def _pack_menu_item(self, text=None, w_id=None, f_type=None) -> MENUITEMINFOW:
+        res = self.MENUITEMINFOW()
+        res.cbSize = ctypes.sizeof(self.MENUITEMINFOW)
+        res.fMask = 0
+        if text is not None:
+            res.fMask |= self.MIIM_STRING
+            res.fType = self.MF_STRING
+            res.dwTypeData = text
+            res.cch = len(text)
+        if w_id is not None:
+            res.fMask |= self.MIIM_ID
+            res.wID = w_id
+        if f_type is not None:
+            res.fMask |= self.MIIM_FTYPE
+            res.fType = f_type
+        return res
 
     def _create_green_icon(self) -> int:
         """纯 GDI 动态绘制高品质绿色对话气泡托盘图标"""
@@ -159,29 +204,27 @@ class Win32NativeTray:
 
     def _show_menu(self):
         h_menu = self.user32.CreatePopupMenu()
-        self.user32.AppendMenuW(h_menu, self.MF_STRING, self.ID_TOGGLE, "显示 / 隐藏助手")
-        self.user32.AppendMenuW(h_menu, self.MF_SEPARATOR, 0, None)
-        self.user32.AppendMenuW(h_menu, self.MF_STRING, self.ID_EXIT, "退出助手程序")
+        
+        item1 = self._pack_menu_item(text="显示 / 隐藏助手", w_id=self.ID_TOGGLE)
+        self.user32.InsertMenuItemW(h_menu, 0, 1, ctypes.byref(item1))
+
+        item2 = self._pack_menu_item(f_type=self.MF_SEPARATOR)
+        self.user32.InsertMenuItemW(h_menu, 1, 1, ctypes.byref(item2))
+
+        item3 = self._pack_menu_item(text="退出助手程序", w_id=self.ID_EXIT)
+        self.user32.InsertMenuItemW(h_menu, 2, 1, ctypes.byref(item3))
 
         pt = wintypes.POINT()
         self.user32.GetCursorPos(ctypes.byref(pt))
         self.user32.SetForegroundWindow(self.hwnd)
         
-        # 使用 TPM_RETURNCMD | TPM_NONOTIFY 直接同步返回用户选中的菜单命令 ID
-        cmd = self.user32.TrackPopupMenu(
+        self.user32.TrackPopupMenu(
             h_menu,
-            self.TPM_RIGHTBUTTON | self.TPM_RETURNCMD | self.TPM_NONOTIFY,
+            self.TPM_LEFTALIGN | self.TPM_RIGHTBUTTON,
             pt.x, pt.y, 0, self.hwnd, None
         )
         self.user32.PostMessageW(self.hwnd, self.WM_NULL, 0, 0)
         self.user32.DestroyMenu(h_menu)
-
-        if cmd == self.ID_TOGGLE:
-            if callable(self.on_toggle):
-                self.on_toggle()
-        elif cmd == self.ID_EXIT:
-            if callable(self.on_exit):
-                self.on_exit()
 
     def _wnd_proc(self, hwnd, msg, wparam, lparam):
         if msg == self.WM_TRAY:
@@ -191,6 +234,15 @@ class Win32NativeTray:
             elif lparam == self.WM_RBUTTONUP:
                 self._show_menu()
             return 0
+        elif msg == self.WM_COMMAND:
+            cmd = wparam & 0xFFFF
+            if cmd == self.ID_TOGGLE:
+                if callable(self.on_toggle):
+                    self.on_toggle()
+            elif cmd == self.ID_EXIT:
+                if callable(self.on_exit):
+                    self.on_exit()
+            return 0
         elif msg == self.WM_DESTROY:
             self.stop()
             self.user32.PostQuitMessage(0)
@@ -199,6 +251,7 @@ class Win32NativeTray:
         return self.user32.DefWindowProcW(hwnd, msg, wparam, lparam)
 
     def _run_loop(self):
+        h_inst = self.kernel32.GetModuleHandleW(None)
         WNDPROC = ctypes.WINFUNCTYPE(ctypes.c_longlong, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
         self._wndproc = WNDPROC(self._wnd_proc)
 
@@ -206,12 +259,13 @@ class Win32NativeTray:
         wc = self.WNDCLASSEXW()
         wc.cbSize = ctypes.sizeof(self.WNDCLASSEXW)
         wc.lpfnWndProc = ctypes.cast(self._wndproc, ctypes.c_void_p).value
+        wc.hInstance = h_inst
         wc.lpszClassName = cls_name
         self.user32.RegisterClassExW(ctypes.byref(wc))
 
         self.hwnd = self.user32.CreateWindowExW(
             0, cls_name, "ChatHelper_TrayWnd", 0,
-            0, 0, 0, 0, 0, 0, 0, None
+            0, 0, 0, 0, 0, 0, h_inst, None
         )
 
         self.h_icon = self._create_green_icon()
