@@ -85,17 +85,23 @@ class DockingEngine:
         self.user32.GetClassNameW(hwnd, class_buff, 512)
         class_name = class_buff.value
 
-        pid = wintypes.DWORD()
-        self.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-
-        h_proc = self.kernel32.OpenProcess(0x0400 | 0x0010, False, pid)
+        # 使用标准权限 PROCESS_QUERY_LIMITED_INFORMATION (0x1000)，无视 UAC 与权限阻拦
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        h_proc = self.kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
         proc_name = ""
         if h_proc:
             name_buff = ctypes.create_unicode_buffer(260)
             size = wintypes.DWORD(260)
-            self.kernel32.QueryFullProcessImageNameW(h_proc, 0, name_buff, ctypes.byref(size))
+            if self.kernel32.QueryFullProcessImageNameW(h_proc, 0, name_buff, ctypes.byref(size)):
+                proc_name = name_buff.value.split("\\")[-1].lower()
             self.kernel32.CloseHandle(h_proc)
-            proc_name = name_buff.value.split("\\")[-1].lower()
+
+        if not proc_name:
+            try:
+                import psutil
+                proc_name = psutil.Process(pid.value).name().lower()
+            except Exception:
+                pass
 
         return TargetWindowInfo(
             hwnd=hwnd,

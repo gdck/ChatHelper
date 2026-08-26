@@ -377,6 +377,18 @@ onMounted(async () => {
 
   await loadCategories()
   await loadReplies()
+
+  // 建立 250ms 实时标题心跳同步，确保聊天对象切换时标题秒级响应
+  setInterval(async () => {
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.getTargetTitle) {
+      try {
+        const t = await window.pywebview.api.getTargetTitle()
+        if (t !== targetTitle.value) {
+          targetTitle.value = t
+        }
+      } catch (e) {}
+    }
+  }, 250)
 })
 </script>
 
