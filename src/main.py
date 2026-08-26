@@ -16,6 +16,7 @@ from src.database import DatabaseManager
 from src.send_engine import SendEngine
 from src.docking_engine import DockingEngine
 from src.api import JsApi
+from src.tray_manager import TrayManager
 
 def get_resource_path(relative_path: str) -> str:
     """获取资源文件的绝对路径（兼容源码运行与 PyInstaller 打包环境）"""
@@ -66,6 +67,20 @@ def create_app():
     )
     api.set_window(window)
 
+    def toggle_helper(icon=None, item=None):
+        api.toggleCollapse()
+
+    def exit_app(icon=None, item=None):
+        if tray:
+            tray.stop()
+        dock.stop()
+        if window:
+            window.destroy()
+        os._exit(0)
+
+    tray = TrayManager(on_toggle=toggle_helper, on_exit=exit_app)
+    tray.start()
+
     def on_target_title(title: str):
         try:
             window.evaluate_js(f"window.dispatchEvent(new CustomEvent('target-changed', {{ detail: '{title}' }}))")
@@ -89,7 +104,13 @@ def create_app():
             dock.set_helper_hwnd(hwnd)
             dock.start()
 
+    def on_closing():
+        tray.stop()
+        dock.stop()
+
     window.events.loaded += on_loaded
+    window.events.closing += on_closing
+
     webview.start(debug=False)
 
 if __name__ == "__main__":
