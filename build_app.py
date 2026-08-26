@@ -32,6 +32,7 @@ def build():
     print("[4/4] 运行 PyInstaller 生成单文件独立可执行程序 (--onefile --uac-admin)...")
     
     # 极简依赖剪裁：彻底移除 sqlite3、Pillow、pystray、Qt、科学计算等庞大模块
+    # 注意：保留 pywebview 必需的标准库模块（如 http、email 等）
     exclude_modules = [
         "sqlite3", "_sqlite3",
         "PIL", "Pillow", "pystray",
@@ -39,7 +40,7 @@ def build():
         "numpy", "scipy", "pandas", "matplotlib", "pygments", "jinja2", "mako",
         "tkinter", "_tkinter", "tcl", "tk",
         "unittest", "pytest", "pydoc", "doctest", "difflib", "test",
-        "xmlrpc", "curses", "email", "http",
+        "xmlrpc", "curses",
         "cryptography", "IPython", "jupyter", "torch"
     ]
     
