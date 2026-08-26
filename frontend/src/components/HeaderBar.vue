@@ -2,7 +2,7 @@
   <div class="header-bar">
     <div class="target-badge" :title="targetTitle || '等待微信窗口激活...'">
       <span class="status-dot" :class="{ inactive: !targetTitle }"></span>
-      <span class="title-text">{{ targetTitle || '微信聊天助手' }}</span>
+      <span class="title-text">{{ targetTitle || '聊天助手' }}</span>
     </div>
     <div class="actions">
       <button class="icon-btn" @click="$emit('open-settings')" title="设置">

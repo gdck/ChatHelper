@@ -304,7 +304,7 @@ class Win32NativeTray:
         nid.uFlags = self.NIF_MESSAGE | self.NIF_ICON | self.NIF_TIP
         nid.uCallbackMessage = self.WM_TRAY
         nid.hIcon = self.h_icon
-        nid.szTip = "微信聊天助手"
+        nid.szTip = "聊天助手"
 
         self.shell32.Shell_NotifyIconW(self.NIM_ADD, ctypes.byref(nid))
 
