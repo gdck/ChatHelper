@@ -1,4 +1,4 @@
-# 💬 微信多开聊天助手 (ChatHelper)
+# 💬 聊天助手 (ChatHelper)
 
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-blue.svg)](https://microsoft.com/windows)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg)](https://www.python.org/)
@@ -6,7 +6,7 @@
 [![pywebview](https://img.shields.io/badge/GUI-pywebview%20%28WebView2%29-orange.svg)](https://pywebview.flowrl.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-基于 **Python 3 + pywebview (Microsoft Edge WebView2) + Vue 3 (Vite)** 打造的现代化客服与多开聊天快捷话术与智能吸附助手。专为电商客服、社群运营、销售团队及多会话重度用户设计，提供 0 延迟原生贴边跟随、多模态附件发送、智能变量插值与优雅的 Fluent 毛玻璃界面。
+基于 **Python 3 + pywebview (Microsoft Edge WebView2) + Vue 3 (Vite)** 打造的现代化客服与聊天快捷话术与智能吸附助手。专为电商客服、社群运营、销售团队及多会话重度用户设计，提供 0 延迟原生贴边跟随、多模态附件发送、智能变量插值与优雅的 Fluent 毛玻璃界面。
 
 ---
 
