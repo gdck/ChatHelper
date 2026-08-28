@@ -81,7 +81,7 @@ class DockingEngine:
 
     EXCLUDED_TITLES = {
         "提示", "确认", "警告", "错误", "删除", "登录", "QQ登录", "退出", "转发",
-        "截图", "表情", "查看图片", "图片查看", "图片查看器", "设置", "系统设置", "文件传输", "关于",
+        "截图", "表情", "查看图片", "图片查看", "图片查看器", "图片和视频", "朋友圈", "设置", "系统设置", "文件传输", "关于",
         "查找", "加为好友", "消息盒子", "未读消息", "系统消息", "好友管理", "群管理",
         "Alert", "Notice", "Warning", "Confirm", "Login", "Settings"
     }
@@ -135,10 +135,15 @@ class DockingEngine:
         self.enabled_ims = set(keys)
         self.update_dock_position(force=True)
 
+    def set_sidebar_width(self, width: int) -> None:
+        clamped_width = max(360, min(800, int(width)))
+        self.sidebar_width = clamped_width
+        self.update_dock_position(force=True)
+
     def set_helper_hwnd(self, hwnd: int) -> None:
         self.helper_hwnd = hwnd
 
-    def calculate_dock_pos(self, rect: tuple[int, int, int, int], collapsed: bool, sidebar_width: int = 408, icon_size: int = 28) -> tuple[int, int, int, int]:
+    def calculate_dock_pos(self, rect: tuple[int, int, int, int], collapsed: bool, sidebar_width: int = 480, icon_size: int = 28) -> tuple[int, int, int, int]:
         left, top, right, bottom = rect
         width = right - left
         height = bottom - top

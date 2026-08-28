@@ -48,3 +48,29 @@ def test_api_send_reply():
         }
     )
     mock_db.increment_use_count.assert_called_once_with(10)
+
+def test_api_sidebar_width():
+    mock_db = MagicMock()
+    mock_db.get_setting.return_value = "520"
+    mock_dock = MagicMock()
+    mock_send = MagicMock()
+
+    api = JsApi(mock_db, mock_dock, mock_send)
+    
+    # 获取宽度
+    w = api.getSidebarWidth()
+    assert w == 520
+
+    # 正常设置宽度并持久化
+    res = api.setSidebarWidth(600, persist=True)
+    assert res["success"] is True
+    assert res["width"] == 600
+    mock_dock.set_sidebar_width.assert_called_with(600)
+    mock_db.set_setting.assert_called_with("sidebar_width", "600")
+
+    # 边界限制测试：小于 360 自动限制为 360，大于 800 自动限制为 800
+    res_min = api.setSidebarWidth(200, persist=False)
+    assert res_min["width"] == 360
+
+    res_max = api.setSidebarWidth(1200, persist=False)
+    assert res_max["width"] == 800

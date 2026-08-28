@@ -72,3 +72,17 @@ def test_toggle_collapse():
     state2 = engine.toggle_collapse()
     assert state2 is False
     assert engine.collapsed is False
+
+def test_sidebar_width_adjustment():
+    engine = DockingEngine(sidebar_width=480)
+    assert engine.sidebar_width == 480
+
+    engine.set_sidebar_width(600)
+    assert engine.sidebar_width == 600
+
+    # 边界限制检查
+    engine.set_sidebar_width(200)
+    assert engine.sidebar_width == 360
+
+    engine.set_sidebar_width(1000)
+    assert engine.sidebar_width == 800

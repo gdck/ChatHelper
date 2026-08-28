@@ -129,10 +129,29 @@ class JsApi:
     def getTargetTitle(self) -> str:
         return self.dock.current_target_title or ""
 
+    def getSidebarWidth(self) -> int:
+        try:
+            val = self.db.get_setting("sidebar_width", "480")
+            return max(360, min(800, int(val)))
+        except Exception:
+            return 480
+
+    def setSidebarWidth(self, width: int, persist: bool = True) -> dict[str, Any]:
+        try:
+            width_int = int(width)
+            clamped = max(360, min(800, width_int))
+            self.dock.set_sidebar_width(clamped)
+            if persist:
+                self.db.set_setting("sidebar_width", str(clamped))
+            return {"success": True, "width": clamped}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     def getSettings(self) -> dict[str, str]:
         return {
             "dark_mode": self.db.get_setting("dark_mode", "0"),
             "hotkey": self.db.get_setting("hotkey", "alt+space"),
+            "sidebar_width": self.db.get_setting("sidebar_width", "480"),
             "paste_delay": self.db.get_setting("paste_delay", "120"),
             "enter_delay": self.db.get_setting("enter_delay", "120"),
             "typewriter_delay": self.db.get_setting("typewriter_delay", "500"),

@@ -36,9 +36,15 @@ def create_app():
 
     # 存储管理器：%APPDATA%\ChatHelper\data.json
     storage = JsonStorageManager()
+    
+    saved_width_str = storage.get_setting("sidebar_width", "480")
+    try:
+        saved_width = max(360, min(800, int(saved_width_str)))
+    except Exception:
+        saved_width = 480
 
     send = SendEngine()
-    dock = DockingEngine(sidebar_width=480)
+    dock = DockingEngine(sidebar_width=saved_width)
     api = JsApi(storage, dock, send)
 
     # 前端资源路径探测
@@ -52,7 +58,7 @@ def create_app():
         title="聊天助手",
         url=url,
         js_api=api,
-        width=480,
+        width=saved_width,
         height=700,
         min_size=(28, 28),
         frameless=True,

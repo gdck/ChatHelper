@@ -26,6 +26,7 @@ class JsonStorageManager:
             "app_settings": {
                 "dark_mode": "0",
                 "hotkey": "alt+space",
+                "sidebar_width": "480",
                 "paste_delay": "120",
                 "enter_delay": "120",
                 "typewriter_delay": "500",

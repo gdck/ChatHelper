@@ -92,6 +92,23 @@
         @confirm="handleConfirmAction"
         @cancel="confirmDialog.visible = false"
       />
+
+      <!-- 右侧边缘拖拽拉伸调整宽度手柄 -->
+      <div
+        class="window-resize-handle"
+        :class="{ 'is-resizing': isResizing }"
+        @pointerdown="handleResizePointerDown"
+        title="按住左右拖动调整窗口宽度"
+      >
+        <div class="resize-indicator-line" />
+      </div>
+
+      <!-- 拖拽调节中的实时宽度胶囊气泡 -->
+      <transition name="fade-badge">
+        <div v-if="isResizing" class="resize-width-badge">
+          {{ currentWidth }}px
+        </div>
+      </transition>
     </template>
   </div>
 </template>
@@ -118,6 +135,61 @@ const replies = ref([])
 const selectedCategoryId = ref(null)
 const searchKeyword = ref('')
 const searchBarRef = ref(null)
+
+// 窗口宽度调整状态
+const currentWidth = ref(480)
+const isResizing = ref(false)
+
+function handleResizePointerDown(e) {
+  if (e.button !== 0) return
+  isResizing.value = true
+  const startX = e.screenX ?? e.clientX
+  const startWidth = currentWidth.value || 480
+
+  const target = e.currentTarget
+  if (target && target.setPointerCapture) {
+    try {
+      target.setPointerCapture(e.pointerId)
+    } catch (err) {}
+  }
+
+  const onPointerMove = (moveEvent) => {
+    if (!isResizing.value) return
+    const currentX = moveEvent.screenX ?? moveEvent.clientX
+    const deltaX = currentX - startX
+    let newWidth = Math.round(startWidth + deltaX)
+    if (newWidth < 360) newWidth = 360
+    if (newWidth > 800) newWidth = 800
+
+    if (newWidth !== currentWidth.value) {
+      currentWidth.value = newWidth
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.setSidebarWidth) {
+        window.pywebview.api.setSidebarWidth(newWidth, false)
+      }
+    }
+  }
+
+  const onPointerUp = async (upEvent) => {
+    isResizing.value = false
+    target.removeEventListener('pointermove', onPointerMove)
+    target.removeEventListener('pointerup', onPointerUp)
+    target.removeEventListener('pointercancel', onPointerUp)
+    try {
+      if (target && target.releasePointerCapture) {
+        target.releasePointerCapture(upEvent.pointerId)
+      }
+    } catch (err) {}
+
+    // 持久化存储到后端 JSON
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.setSidebarWidth) {
+      await window.pywebview.api.setSidebarWidth(currentWidth.value, true)
+    }
+  }
+
+  target.addEventListener('pointermove', onPointerMove)
+  target.addEventListener('pointerup', onPointerUp)
+  target.addEventListener('pointercancel', onPointerUp)
+}
 
 // 悬浮菜单状态
 const floatingMenu = reactive({
@@ -393,6 +465,9 @@ onMounted(async () => {
       if (window.pywebview.api.getTargetTitle) {
         targetTitle.value = await window.pywebview.api.getTargetTitle()
       }
+      if (window.pywebview.api.getSidebarWidth) {
+        currentWidth.value = await window.pywebview.api.getSidebarWidth()
+      }
     }
   })
 
@@ -439,5 +514,67 @@ onMounted(async () => {
   flex: 1;
   overflow: hidden;
   position: relative;
+}
+
+/* 右侧边缘拖拽调整宽度手柄 */
+.window-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
+  z-index: 9999;
+  user-select: none;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.window-resize-handle:hover .resize-indicator-line,
+.window-resize-handle.is-resizing .resize-indicator-line {
+  opacity: 1;
+  background: var(--primary-color, #2563eb);
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.4);
+}
+
+.resize-indicator-line {
+  width: 2px;
+  height: 100%;
+  background: transparent;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+  border-radius: 1px;
+}
+
+.resize-width-badge {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%);
+  background: rgba(15, 23, 42, 0.85);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  z-index: 10000;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.fade-badge-enter-active,
+.fade-badge-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.fade-badge-enter-from,
+.fade-badge-leave-to {
+  opacity: 0;
+  transform: translateY(-50%) scale(0.9);
 }
 </style>
