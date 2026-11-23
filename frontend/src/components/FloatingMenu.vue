@@ -6,30 +6,30 @@
       @click.stop
     >
       <div class="menu-item" @click="handleSelectMode('typewriter')">
-        <Sparkles :size="13" class="menu-icon text-green" />
-        <span>逐字慢发 (打字机)</span>
+        <Sparkles :size="14" class="menu-icon" />
+        <span>逐字慢发</span>
       </div>
       <div class="menu-item" @click="handleSelectMode('repeat3')">
-        <Repeat :size="13" class="menu-icon text-blue" />
+        <Repeat :size="14" class="menu-icon" />
         <span>连发 3 次</span>
       </div>
       <div class="menu-item" @click="handleSelectMode('reverse')">
-        <ArrowLeftRight :size="13" class="menu-icon text-purple" />
+        <ArrowLeftRight :size="14" class="menu-icon" />
         <span>倒序发送</span>
       </div>
       <div class="menu-item" @click="handleSelectMode('paste_only')">
-        <ClipboardCopy :size="13" class="menu-icon text-orange" />
+        <ClipboardCopy :size="14" class="menu-icon" />
         <span>仅粘贴不回车</span>
       </div>
-      
+
       <hr class="menu-divider" />
 
       <div class="menu-item" @click="handleAction('edit')">
-        <Edit3 :size="13" class="menu-icon" />
+        <Edit3 :size="14" class="menu-icon" />
         <span>编辑话术</span>
       </div>
       <div class="menu-item delete" @click="handleAction('delete')">
-        <Trash2 :size="13" class="menu-icon text-red" />
+        <Trash2 :size="14" class="menu-icon" />
         <span>删除话术</span>
       </div>
     </div>
@@ -69,13 +69,13 @@ const menuStyle = computed(() => {
     return { top: '50%', left: '50%' }
   }
 
-  const menuWidth = 160
-  const menuHeight = 220
+  const menuWidth = 168
+  const menuHeight = 224
   const winHeight = window.innerHeight
   const winWidth = window.innerWidth
   const rect = props.anchorRect
 
-  // 水平定位：如果是右键点击 (width === 0)，以鼠标 x 展开，否则右对齐到按钮
+  // 水平定位
   let left
   if (rect.width === 0) {
     left = rect.left
@@ -126,75 +126,74 @@ function handleAction(action) {
 
 .floating-menu {
   position: fixed;
-  width: 160px;
+  width: 168px;
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
-  padding: 5px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-md);
+  padding: 4px;
   display: flex;
   flex-direction: column;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  animation: popIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  animation: popIn var(--dur-enter) var(--ease);
 }
 
 @keyframes popIn {
   from {
     opacity: 0;
-    transform: scale(0.94);
+    transform: translateY(-4px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0);
   }
 }
 
 .menu-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  font-size: 12px;
-  font-weight: 500;
+  gap: 10px;
+  padding: 8px 10px;
+  font-size: 12.5px;
   color: var(--text-primary);
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.12s ease;
+  transition: background var(--dur-feedback) var(--ease),
+    color var(--dur-feedback) var(--ease);
 }
 
 .menu-item:hover {
-  background: var(--accent-light);
-  color: var(--accent-color);
+  background: var(--bg-hover);
+  color: var(--accent-strong);
 }
 
 .menu-icon {
   flex-shrink: 0;
-  opacity: 0.85;
+  color: var(--text-muted);
+  transition: color var(--dur-feedback) var(--ease);
 }
-
 .menu-item:hover .menu-icon {
-  opacity: 1;
+  color: var(--accent-strong);
 }
-
-.text-green { color: #07c160; }
-.text-blue { color: #3b82f6; }
-.text-purple { color: #8b5cf6; }
-.text-orange { color: #f97316; }
-.text-red { color: #ef4444; }
 
 .menu-divider {
   border: none;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-subtle);
   margin: 4px 0;
 }
 
 .menu-item.delete {
-  color: #ef4444;
+  color: var(--danger);
 }
-
+.menu-item.delete .menu-icon {
+  color: var(--danger);
+}
 .menu-item.delete:hover {
-  background: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
+  background: var(--danger-wash);
+  color: var(--danger);
+}
+.menu-item.delete:hover .menu-icon {
+  color: var(--danger);
 }
 </style>

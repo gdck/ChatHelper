@@ -1,6 +1,7 @@
 <template>
   <div
     class="reply-compact-row"
+    :class="{ 'is-top': isTopUsed }"
     @dblclick="$emit('send', reply.id, 'paste_only')"
     @contextmenu.prevent="handleRightClick($event)"
     @mouseenter="handleMouseEnter"
@@ -8,18 +9,14 @@
     title="双击仅粘贴到输入框不回车，右键弹出快捷动作菜单"
   >
     <div class="row-left">
-      <div class="status-indicator"></div>
+      <Paperclip v-if="reply.attachments && reply.attachments.length" :size="13" class="att-icon" />
       <span class="row-title" :title="reply.title">{{ reply.title }}</span>
-      <span v-if="reply.attachments && reply.attachments.length" class="att-badge" title="包含附件">
-        📎
-      </span>
-      <span v-if="reply.tags && reply.tags.length" class="tag-badge">
-        {{ reply.tags[0] }}
-      </span>
+      <span v-if="isTopUsed" class="top-marker">最常用</span>
+      <span v-if="reply.tags && reply.tags.length" class="tag-badge">{{ reply.tags[0] }}</span>
     </div>
 
     <div class="row-right">
-      <span class="use-count" v-if="reply.use_count > 0">{{ reply.use_count }}次</span>
+      <span class="use-count" v-if="reply.use_count > 0">{{ reply.use_count }}</span>
       <button class="send-btn" @click.stop="$emit('send', reply.id, 'normal')" title="直接发送 (Ctrl+V + 回车)">
         <Send :size="11" />
         <span>发送</span>
@@ -28,13 +25,14 @@
         ref="moreBtnRef"
         class="more-btn"
         @click.stop="handleOpenMenu"
-        title="更多发送模式与操作 (右键也可弹出)"
+        title="更多发送模式与操作"
+        aria-label="更多操作"
       >
-        <MoreVertical :size="13" />
+        <MoreVertical :size="14" />
       </button>
     </div>
 
-    <!-- 悬浮完整内容预览 Tooltip（智能上下避让，自适应暗黑模式） -->
+    <!-- 悬浮完整内容预览 Tooltip -->
     <Teleport to="body">
       <div
         v-if="showTooltip"
@@ -48,10 +46,13 @@
         <div class="tooltip-content">{{ reply.content }}</div>
         <div class="tooltip-footer" v-if="(reply.tags && reply.tags.length) || (reply.attachments && reply.attachments.length)">
           <div class="tooltip-tags" v-if="reply.tags && reply.tags.length">
-            <span v-for="tag in reply.tags" :key="tag" class="t-tag">#{{ tag }}</span>
+            <span v-for="tag in reply.tags" :key="tag" class="t-tag">{{ tag }}</span>
           </div>
           <div class="tooltip-atts" v-if="reply.attachments && reply.attachments.length">
-            <span v-for="(att, i) in reply.attachments" :key="i" class="t-att">📎 {{ att.name || '附件' }}</span>
+            <span v-for="(att, i) in reply.attachments" :key="i" class="t-att">
+              <Paperclip :size="11" />
+              {{ att.name || '附件' }}
+            </span>
           </div>
         </div>
       </div>
@@ -61,7 +62,7 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { Send, MoreVertical } from 'lucide-vue-next'
+import { Send, MoreVertical, Paperclip } from 'lucide-vue-next'
 
 const props = defineProps({
   reply: {
@@ -77,6 +78,13 @@ const isHovered = ref(false)
 const showTooltip = ref(false)
 const targetRect = reactive({ top: 0, bottom: 0, left: 0, right: 0, height: 0 })
 let hoverTimer = null
+
+// 最常用：按 use_count 排序的前 3 条，作为列表里唯一的强调点
+const isTopUsed = computed(() => {
+  if (!props.reply.use_count) return false
+  // 由列表在渲染时通过 data 属性传入排名，避免在此访问兄弟节点
+  return props.reply.__isTop === true
+})
 
 function handleMouseEnter(e) {
   isHovered.value = true
@@ -103,25 +111,24 @@ function handleMouseLeave() {
   }
 }
 
-// 智能上下避让计算：严格避开当前条目区域
+// 智能上下避让计算
 const tooltipStyle = computed(() => {
   const vh = window.innerHeight
-  // 如果卡片位于视口上半部，Tooltip 显示在当前行下方；否则显示在当前行上方
   const showBelow = targetRect.top < vh * 0.52
 
   if (showBelow) {
     return {
-      top: `${targetRect.bottom + 6}px`,
+      top: `${targetRect.bottom + 8}px`,
       left: '12px',
-      right: '52px',
-      maxHeight: `${Math.max(100, vh - targetRect.bottom - 20)}px`
+      right: '56px',
+      maxHeight: `${Math.max(100, vh - targetRect.bottom - 24)}px`
     }
   } else {
     return {
-      bottom: `${vh - targetRect.top + 6}px`,
+      bottom: `${vh - targetRect.top + 8}px`,
       left: '12px',
-      right: '52px',
-      maxHeight: `${Math.max(100, targetRect.top - 20)}px`
+      right: '56px',
+      maxHeight: `${Math.max(100, targetRect.top - 24)}px`
     }
   }
 })
@@ -165,61 +172,59 @@ function handleOpenMenu() {
   align-items: center;
   justify-content: space-between;
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 6px 10px;
-  margin-bottom: 5px;
-  height: 36px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-card);
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  min-height: 44px;
   box-sizing: border-box;
-  transition: all 0.12s ease;
+  transition: background var(--dur-feedback) var(--ease),
+    border-color var(--dur-feedback) var(--ease);
   cursor: pointer;
   user-select: none;
 }
 .reply-compact-row:hover {
-  background: var(--bg-primary);
-  border-color: var(--accent-color);
-  box-shadow: var(--shadow-sm);
+  background: var(--bg-hover);
+  border-color: var(--border-default);
 }
 .row-left {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   overflow: hidden;
   flex: 1;
+  min-width: 0;
 }
-.status-indicator {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent-color);
+.att-icon {
+  color: var(--text-muted);
   flex-shrink: 0;
-  opacity: 0.7;
-}
-.reply-compact-row:hover .status-indicator {
-  opacity: 1;
-  box-shadow: 0 0 4px var(--accent-color);
 }
 .row-title {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
-.att-badge {
-  font-size: 11px;
-  color: var(--text-secondary);
+/* Moment: 最常用 — the one place color earns its keep in the list */
+.top-marker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 4px;
+  background: var(--accent-wash);
+  color: var(--accent-strong);
   flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 .tag-badge {
-  font-size: 10px;
-  background: rgba(148, 163, 184, 0.12);
-  color: var(--text-secondary);
-  padding: 0 4px;
-  border-radius: 3px;
+  font-size: 11px;
+  color: var(--text-muted);
   flex-shrink: 0;
-  max-width: 60px;
+  max-width: 64px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -227,29 +232,30 @@ function handleOpenMenu() {
 .row-right {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-left: 8px;
+  gap: 8px;
+  margin-left: 12px;
   flex-shrink: 0;
 }
 .use-count {
+  font-family: var(--font-mono);
   font-size: 10.5px;
-  color: var(--text-secondary);
-  opacity: 0.7;
-  margin-right: 2px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-right: 4px;
 }
 .send-btn {
   display: flex;
   align-items: center;
-  gap: 3px;
-  background: var(--accent-color);
-  color: white;
+  gap: 4px;
+  background: var(--accent-solid);
+  color: #ffffff;
   border: none;
-  border-radius: 4px;
-  padding: 3px 7px;
-  font-size: 11.5px;
+  border-radius: var(--r-control);
+  padding: 4px 10px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background var(--dur-feedback) var(--ease);
 }
 .send-btn:hover {
   background: var(--accent-hover);
@@ -257,90 +263,96 @@ function handleOpenMenu() {
 .more-btn {
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   cursor: pointer;
-  padding: 3px;
-  border-radius: 4px;
+  padding: 4px;
+  border-radius: var(--r-control);
   display: flex;
   align-items: center;
-  transition: all 0.12s;
+  justify-content: center;
+  transition: background var(--dur-feedback) var(--ease),
+    color var(--dur-feedback) var(--ease);
 }
 .more-btn:hover {
-  background: var(--border-color);
+  background: var(--bg-active);
   color: var(--text-primary);
 }
 
-/* Tooltip 预览卡片（完整适配浅色/深色主题，毛玻璃质感，垂直智能避让） */
+/* ---- Tooltip ---- */
 .hover-preview-tooltip {
   position: fixed;
   z-index: 10000;
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
-  padding: 10px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-md);
+  padding: 12px 14px;
   pointer-events: none;
-  animation: fadeIn 0.14s ease-out;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  animation: fadeIn var(--dur-enter) var(--ease);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   box-sizing: border-box;
   color: var(--text-primary);
+  overflow-y: auto;
 }
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-3px); }
+  from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .tooltip-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--border-color);
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 .tooltip-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--accent-color);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .tooltip-use {
+  font-family: var(--font-mono);
   font-size: 10.5px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .tooltip-content {
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 12.5px;
+  line-height: 1.6;
   color: var(--text-primary);
   white-space: pre-wrap;
   word-break: break-word;
-  overflow-y: hidden;
 }
 .tooltip-footer {
-  margin-top: 6px;
-  padding-top: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  border-top: 1px dashed var(--border-color);
+  gap: 6px;
+  border-top: 1px solid var(--border-subtle);
 }
-.tooltip-tags, .tooltip-atts {
+.tooltip-tags,
+.tooltip-atts {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 .t-tag {
-  font-size: 10.5px;
-  color: var(--accent-color);
-  background: var(--accent-light);
-  padding: 1px 5px;
-  border-radius: 3px;
+  font-size: 11px;
+  color: var(--accent-strong);
 }
 .t-att {
-  font-size: 10.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
   color: var(--text-secondary);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  padding: 1px 5px;
-  border-radius: 3px;
 }
 </style>

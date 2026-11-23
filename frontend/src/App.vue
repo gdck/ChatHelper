@@ -343,7 +343,7 @@ async function handleSaveCategory(data) {
 function handleOpenDeleteCategoryConfirm(catId) {
   openConfirmDialog(
     '删除分类',
-    '确认删除该分类？该分类下的所有话术将被同步删除，无法恢复！',
+    '确认删除该分类？该分类下的所有话术将被同步删除，无法恢复。',
     async () => {
       if (window.pywebview && window.pywebview.api) {
         await window.pywebview.api.deleteCategory(catId)
@@ -428,13 +428,8 @@ function handleThemeChange(dark) {
 }
 
 watch(isDark, (val) => {
-  if (val) {
-    document.documentElement.classList.add('dark')
-    document.body.classList.add('dark')
-  } else {
-    document.documentElement.classList.remove('dark')
-    document.body.classList.remove('dark')
-  }
+  document.documentElement.classList.toggle('light', !val)
+  document.body.classList.toggle('light', !val)
 }, { immediate: true })
 
 async function handleDataRestored() {
@@ -493,12 +488,14 @@ onMounted(async () => {
   height: 100vh;
   width: 100%;
   background: var(--bg-primary);
-  border-left: 1px solid var(--border-color);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  border-left: 1px solid var(--border-default);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   color: var(--text-primary);
   position: relative;
   overflow: hidden;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .app-wrapper.is-collapsed {
@@ -530,14 +527,13 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s ease;
+  transition: background var(--dur-feedback) var(--ease);
 }
 
 .window-resize-handle:hover .resize-indicator-line,
 .window-resize-handle.is-resizing .resize-indicator-line {
   opacity: 1;
-  background: var(--primary-color, #2563eb);
-  box-shadow: 0 0 8px rgba(37, 99, 235, 0.4);
+  background: var(--accent);
 }
 
 .resize-indicator-line {
@@ -545,27 +541,26 @@ onMounted(async () => {
   height: 100%;
   background: transparent;
   opacity: 0;
-  transition: opacity 0.15s ease, background 0.15s ease;
+  transition: opacity var(--dur-feedback) var(--ease);
   border-radius: 1px;
 }
 
 .resize-width-badge {
   position: absolute;
   top: 50%;
-  right: 18px;
+  right: 16px;
   transform: translateY(-50%);
-  background: rgba(15, 23, 42, 0.85);
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 9999px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: var(--r-control);
+  box-shadow: var(--shadow-md);
   pointer-events: none;
   z-index: 10000;
-  letter-spacing: 0.5px;
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-variant-numeric: tabular-nums;
 }
 
 .fade-badge-enter-active,

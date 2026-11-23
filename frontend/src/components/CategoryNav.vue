@@ -29,8 +29,8 @@
 
     <!-- 底部添加分类按钮 -->
     <div class="strip-footer">
-      <button class="add-cat-btn" @click="$emit('add-category')" title="新增分类">
-        <Plus :size="15" />
+      <button class="add-cat-btn" @click="$emit('add-category')" title="新增分类" aria-label="新增分类">
+        <Plus :size="16" />
       </button>
     </div>
 
@@ -42,7 +42,7 @@
         :style="{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }"
         @click.stop
       >
-        <div class="menu-item" @click="handleEditCategory">重命名/编辑</div>
+        <div class="menu-item" @click="handleEditCategory">重命名</div>
         <div class="menu-item delete" @click="handleDeleteCategory">删除分类</div>
       </div>
     </Teleport>
@@ -112,9 +112,9 @@ onUnmounted(() => {
 
 <style scoped>
 .category-vertical-strip {
-  width: 38px;
+  width: 44px;
   background: var(--bg-secondary);
-  border-left: 1px solid var(--border-color);
+  border-left: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -126,14 +126,14 @@ onUnmounted(() => {
 .vertical-tabs-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 6px 0;
+  padding: 8px 0;
   flex: 1;
 }
 .vertical-tabs-list::-webkit-scrollbar {
-  width: 0px;
+  width: 0;
 }
 .v-tab-item {
   display: flex;
@@ -141,48 +141,61 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding: 8px 2px;
+  gap: 4px;
   cursor: pointer;
   position: relative;
-  transition: all 0.15s ease;
-  border-right: 2px solid transparent;
+  transition: background var(--dur-feedback) var(--ease),
+    color var(--dur-feedback) var(--ease);
   color: var(--text-secondary);
   min-height: 48px;
+  border-radius: var(--r-control);
 }
 .v-tab-item:hover {
-  background: var(--border-color);
+  background: var(--bg-hover);
   color: var(--text-primary);
 }
 .v-tab-item.active {
   background: var(--bg-card);
-  color: var(--accent-color);
-  font-weight: 600;
-  border-right: 2px solid var(--accent-color);
+  color: var(--accent-strong);
+}
+/* Active state: small surface step with a hairline accent edge,
+   not a colored pill. */
+.v-tab-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent);
 }
 .v-tab-text {
   writing-mode: vertical-rl;
-  letter-spacing: 2px;
-  font-size: 11.5px;
+  letter-spacing: 1px;
+  font-size: 12px;
   line-height: 1.2;
   text-orientation: mixed;
-  margin-bottom: 3px;
 }
 .v-tab-badge {
-  font-size: 9.5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
   line-height: 1;
   padding: 2px 4px;
-  border-radius: 8px;
-  background: rgba(148, 163, 184, 0.2);
-  color: inherit;
+  border-radius: 4px;
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 .v-tab-item.active .v-tab-badge {
-  background: var(--accent-color);
-  color: white;
+  color: var(--accent-strong);
+  background: var(--accent-wash);
 }
 .strip-footer {
-  padding: 6px 4px;
+  padding: 8px 4px;
   display: flex;
   justify-content: center;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-subtle);
 }
 .add-cat-btn {
   background: transparent;
@@ -190,41 +203,44 @@ onUnmounted(() => {
   color: var(--text-secondary);
   cursor: pointer;
   padding: 6px;
-  border-radius: 6px;
+  border-radius: var(--r-control);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
+  transition: background var(--dur-feedback) var(--ease),
+    color var(--dur-feedback) var(--ease);
 }
 .add-cat-btn:hover {
-  background: var(--border-color);
-  color: var(--accent-color);
+  background: var(--bg-hover);
+  color: var(--accent-strong);
 }
 .context-menu {
   position: fixed;
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-control);
   box-shadow: var(--shadow-md);
-  padding: 4px 0;
+  padding: 4px;
   z-index: 1000;
-  width: 120px;
+  width: 128px;
 }
 .menu-item {
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--text-primary);
   cursor: pointer;
+  border-radius: 6px;
+  transition: background var(--dur-feedback) var(--ease),
+    color var(--dur-feedback) var(--ease);
 }
 .menu-item:hover {
-  background: var(--accent-light);
-  color: var(--accent-color);
+  background: var(--bg-hover);
 }
 .menu-item.delete {
-  color: #ef4444;
+  color: var(--danger);
 }
 .menu-item.delete:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
+  background: var(--danger-wash);
+  color: var(--danger);
 }
 </style>

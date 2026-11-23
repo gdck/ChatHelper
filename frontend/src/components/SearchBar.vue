@@ -6,11 +6,12 @@
         type="text"
         :value="modelValue"
         @input="$emit('update:modelValue', $event.target.value)"
-        placeholder="搜索话术/标签/正文 (Alt+Space)"
+        placeholder="搜索话术、标签、正文"
         class="search-input"
         ref="searchInputRef"
+        aria-label="搜索话术"
       />
-      <button v-if="modelValue" @click="$emit('update:modelValue', '')" class="clear-btn">
+      <button v-if="modelValue" @click="$emit('update:modelValue', '')" class="clear-btn" aria-label="清空搜索">
         <X :size="13" />
       </button>
     </div>
@@ -45,62 +46,71 @@ defineExpose({
 .search-container {
   display: flex;
   align-items: center;
-  padding: 8px 10px;
+  padding: 8px 12px;
   gap: 8px;
   background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
 }
 .search-input-wrapper {
   flex: 1;
   position: relative;
   display: flex;
   align-items: center;
+  min-width: 0;
 }
 .search-icon {
   position: absolute;
-  left: 8px;
-  color: var(--text-secondary);
+  left: 10px;
+  color: var(--text-muted);
   pointer-events: none;
 }
 .search-input {
   width: 100%;
   background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 5px 26px 5px 28px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-control);
+  padding: 7px 32px;
   color: var(--text-primary);
   font-size: 12.5px;
   outline: none;
-  transition: all 0.15s;
+  transition: border-color var(--dur-feedback) var(--ease);
+}
+.search-input::placeholder {
+  color: var(--text-muted);
 }
 .search-input:focus {
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 2px var(--accent-light);
+  border-color: var(--accent);
 }
 .clear-btn {
   position: absolute;
-  right: 6px;
+  right: 8px;
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
+  padding: 2px;
+  border-radius: 4px;
+}
+.clear-btn:hover {
+  color: var(--text-primary);
 }
 .add-btn {
   display: flex;
   align-items: center;
   gap: 4px;
-  background: var(--accent-color);
-  color: white;
+  background: var(--accent-solid);
+  color: #ffffff;
   border: none;
-  padding: 5px 10px;
-  border-radius: 6px;
+  padding: 7px 12px;
+  border-radius: var(--r-control);
   cursor: pointer;
   font-size: 12.5px;
   font-weight: 500;
   flex-shrink: 0;
-  transition: background 0.15s;
+  transition: background var(--dur-feedback) var(--ease);
 }
 .add-btn:hover {
   background: var(--accent-hover);

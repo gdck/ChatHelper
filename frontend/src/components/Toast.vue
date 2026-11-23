@@ -29,7 +29,7 @@ defineProps({
 <style scoped>
 .toast-container {
   position: fixed;
-  top: 14px;
+  top: 16px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -44,50 +44,46 @@ defineProps({
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
-  border-radius: 8px;
+  padding: 10px 14px;
+  border-radius: var(--r-control);
   font-size: 12.5px;
   font-weight: 500;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-md);
   pointer-events: auto;
+  color: #ffffff;
 }
 .toast-item.success {
-  background: rgba(7, 193, 96, 0.92);
-  color: white;
+  background: var(--accent-solid);
 }
 .toast-item.error {
-  background: rgba(239, 68, 68, 0.92);
-  color: white;
+  background: var(--danger-strong);
 }
 .toast-item.warning {
-  background: rgba(245, 158, 11, 0.92);
-  color: white;
+  background: var(--warning);
 }
 .toast-item.info {
-  background: rgba(30, 41, 59, 0.92);
-  color: white;
+  background: #2b3230;
 }
 .toast-icon {
   flex-shrink: 0;
 }
 .toast-text {
   flex: 1;
-  word-break: break-all;
+  word-break: break-word;
 }
 
-/* 动效 */
 .toast-enter-active,
 .toast-leave-active {
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 200ms var(--ease), transform 200ms var(--ease);
 }
 .toast-enter-from {
   opacity: 0;
-  transform: translateY(-12px) scale(0.95);
+  transform: translateY(-8px);
 }
 .toast-leave-to {
   opacity: 0;
-  transform: translateY(-12px) scale(0.95);
+  transform: translateY(-8px);
 }
 </style>

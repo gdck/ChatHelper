@@ -88,10 +88,10 @@ function handleSubmit() {
 }
 .modal-dialog {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-panel);
   width: 100%;
-  max-width: 320px;
+  max-width: 328px;
   box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
@@ -100,75 +100,90 @@ function handleSubmit() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border-color);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 .modal-title {
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
 }
 .close-btn {
   background: transparent;
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: background var(--dur-feedback) var(--ease),
+    color var(--dur-feedback) var(--ease);
+}
+.close-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 .modal-body {
-  padding: 14px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 .form-group label {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--text-secondary);
 }
 .required {
-  color: #ef4444;
+  color: var(--danger);
 }
 .form-input {
   background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 6px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-control);
+  padding: 8px 10px;
   color: var(--text-primary);
   font-size: 12.5px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-feedback) var(--ease);
 }
 .form-input:focus {
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 2px var(--accent-light);
+  border-color: var(--accent);
 }
 .modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  padding: 10px 14px;
-  border-top: 1px solid var(--border-color);
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-subtle);
 }
 .btn {
-  padding: 5px 14px;
-  border-radius: 6px;
-  font-size: 12px;
+  padding: 8px 16px;
+  border-radius: var(--r-control);
+  font-size: 12.5px;
   cursor: pointer;
   font-weight: 500;
+  transition: background var(--dur-feedback) var(--ease),
+    border-color var(--dur-feedback) var(--ease);
 }
 .btn.cancel {
   background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-subtle);
   color: var(--text-primary);
 }
+.btn.cancel:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
 .btn.submit {
-  background: var(--accent-color);
+  background: var(--accent-solid);
   border: none;
-  color: white;
+  color: #ffffff;
 }
 .btn.submit:hover {
   background: var(--accent-hover);

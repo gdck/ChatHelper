@@ -1,13 +1,13 @@
 <template>
   <div class="card-list-container">
     <div v-if="replies.length === 0" class="empty-state">
-      <Inbox :size="32" class="empty-icon" />
-      <p class="empty-text">暂无话术内容</p>
-      <button class="empty-add-btn" @click="$emit('create-reply')">立即添加</button>
+      <Inbox :size="28" class="empty-icon" />
+      <p class="empty-text">暂无话术</p>
+      <button class="empty-add-btn" @click="$emit('create-reply')">新增话术</button>
     </div>
     <div v-else class="card-list">
       <ReplyCard
-        v-for="reply in replies"
+        v-for="reply in rankedReplies"
         :key="reply.id"
         :reply="reply"
         @send="(id, mode) => $emit('send-reply', id, mode)"
@@ -20,10 +20,11 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { Inbox } from 'lucide-vue-next'
 import ReplyCard from './ReplyCard.vue'
 
-defineProps({
+const props = defineProps({
   replies: {
     type: Array,
     default: () => []
@@ -31,21 +32,27 @@ defineProps({
 })
 
 defineEmits(['send-reply', 'edit-reply', 'delete-reply', 'create-reply', 'open-menu'])
+
+// 标记 use_count 最高的前 3 条为「最常用」，其余保持原顺序
+const rankedReplies = computed(() => {
+  const top = [...props.replies]
+    .filter(r => r.use_count > 0)
+    .sort((a, b) => b.use_count - a.use_count)
+    .slice(0, 3)
+    .map(r => r.id)
+  return props.replies.map(r => ({
+    ...r,
+    __isTop: top.includes(r.id)
+  }))
+})
 </script>
 
 <style scoped>
 .card-list-container {
   flex: 1;
   overflow-y: auto;
-  padding: 6px 8px;
+  padding: 8px;
   box-sizing: border-box;
-}
-.card-list-container::-webkit-scrollbar {
-  width: 4px;
-}
-.card-list-container::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 4px;
 }
 .card-list {
   display: flex;
@@ -56,24 +63,29 @@ defineEmits(['send-reply', 'edit-reply', 'delete-reply', 'create-reply', 'open-m
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 220px;
-  color: var(--text-secondary);
+  height: 240px;
+  color: var(--text-muted);
+  gap: 12px;
 }
 .empty-icon {
-  margin-bottom: 8px;
-  opacity: 0.45;
+  opacity: 0.5;
 }
 .empty-text {
-  font-size: 12.5px;
-  margin-bottom: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 .empty-add-btn {
-  background: var(--accent-color);
-  color: white;
+  background: var(--accent-solid);
+  color: #ffffff;
   border: none;
-  padding: 5px 12px;
-  border-radius: 5px;
-  font-size: 12px;
+  padding: 7px 16px;
+  border-radius: var(--r-control);
+  font-size: 12.5px;
+  font-weight: 500;
   cursor: pointer;
+  transition: background var(--dur-feedback) var(--ease);
+}
+.empty-add-btn:hover {
+  background: var(--accent-hover);
 }
 </style>

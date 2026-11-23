@@ -119,7 +119,7 @@ async function handleBackup() {
   if (window.pywebview && window.pywebview.api) {
     const res = await window.pywebview.api.backupData()
     if (res.success) {
-      emit('toast', { type: 'success', message: res.message || '备份数据已成功导出！' })
+      emit('toast', { type: 'success', message: res.message || '备份导出完成' })
     } else if (!res.cancelled) {
       emit('toast', { type: 'error', message: res.error || '备份导出失败' })
     }
@@ -132,7 +132,7 @@ async function handleRestore() {
   if (window.pywebview && window.pywebview.api) {
     const res = await window.pywebview.api.restoreData()
     if (res.success) {
-      emit('toast', { type: 'success', message: res.message || '数据全量还原成功！' })
+      emit('toast', { type: 'success', message: res.message || '数据还原完成' })
       emit('data-restored')
     } else if (!res.cancelled) {
       emit('toast', { type: 'error', message: res.error || res.message || '数据还原失败，请检查 JSON 格式' })
@@ -159,10 +159,10 @@ async function handleRestore() {
 }
 .modal-dialog {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-panel);
   width: 100%;
-  max-width: 360px;
+  max-width: 368px;
   box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
@@ -171,24 +171,34 @@ async function handleRestore() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border-color);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 .modal-title {
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
 }
 .close-btn {
   background: transparent;
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: background var(--dur-feedback) var(--ease),
+    color var(--dur-feedback) var(--ease);
+}
+.close-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 .modal-body {
-  padding: 14px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   max-height: 480px;
   overflow-y: auto;
 }
@@ -196,27 +206,27 @@ async function handleRestore() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 .setting-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   flex: 1;
 }
 .setting-label {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 500;
 }
 .setting-desc {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--text-secondary);
-  line-height: 1.3;
+  line-height: 1.4;
 }
 .divider {
   border: none;
-  border-top: 1px solid var(--border-color);
-  margin: 2px 0;
+  border-top: 1px solid var(--border-subtle);
+  margin: 0;
 }
 .im-section {
   display: flex;
@@ -226,48 +236,49 @@ async function handleRestore() {
 .section-header {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 .section-title {
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-primary);
 }
 .section-desc {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--text-secondary);
 }
 .im-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
+  gap: 8px;
   margin-top: 4px;
 }
 .im-card {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 8px;
+  padding: 8px 10px;
   background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-control);
   cursor: pointer;
-  transition: all 0.14s ease;
+  transition: border-color var(--dur-feedback) var(--ease),
+    background var(--dur-feedback) var(--ease);
   user-select: none;
 }
 .im-card:hover {
-  border-color: var(--accent-color);
+  border-color: var(--border-strong);
 }
 .im-card.active {
-  background: var(--accent-light);
-  border-color: var(--accent-color);
+  background: var(--accent-wash);
+  border-color: var(--accent);
 }
 .im-checkbox {
-  accent-color: var(--accent-color);
+  accent-color: var(--accent-solid);
   cursor: pointer;
 }
 .im-name {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--text-primary);
   white-space: nowrap;
@@ -286,27 +297,36 @@ async function handleRestore() {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
+  padding: 8px 16px;
+  border-radius: var(--r-control);
+  font-size: 12.5px;
   cursor: pointer;
   flex: 1;
   font-weight: 500;
+  transition: background var(--dur-feedback) var(--ease),
+    border-color var(--dur-feedback) var(--ease);
 }
 .backup-btn, .restore-btn {
   background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-subtle);
   color: var(--text-primary);
+}
+.backup-btn:hover, .restore-btn:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
 }
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  padding: 10px 14px;
-  border-top: 1px solid var(--border-color);
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-subtle);
 }
 .btn.submit {
-  background: var(--accent-color);
+  background: var(--accent-solid);
   border: none;
-  color: white;
+  color: #ffffff;
+}
+.btn.submit:hover {
+  background: var(--accent-hover);
 }
 </style>
