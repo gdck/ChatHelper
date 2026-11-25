@@ -67,6 +67,7 @@ class DockingEngine:
         "tim.exe": "tim",
         "dingtalk.exe": "dingtalk",
         "aliworkbench.exe": "aliworkbench",
+        "闲鱼卖家客服.exe": "闲鱼卖家客服",
     }
 
     PROCESS_DISPLAY_NAMES = {
@@ -76,7 +77,8 @@ class DockingEngine:
         "wechat.exe": "微信",
         "wxwork.exe": "企业微信",
         "dingtalk.exe": "钉钉",
-        "aliworkbench.exe": "千牛"
+        "aliworkbench.exe": "千牛",
+        "闲鱼卖家客服.exe": "闲鱼卖家客服",
     }
 
     EXCLUDED_TITLES = {
